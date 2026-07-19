@@ -277,8 +277,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const endMouse = () => { if (dragging) { gestureRef.current.mode = "none"; setDragging(false); } };
 
   const wrapperW = wrapperRef.current?.clientWidth ?? totalW;
+  const wrapperH = wrapperRef.current?.clientHeight ?? totalH;
   const tipW = Math.min(240, wrapperW - 16);
   const tipLeft = hover ? clamp(hover.x + 12, 8, Math.max(8, wrapperW - tipW - 8)) : 0;
+  // 下方に余白が無い（下段の行）ときはカーソルの上側に開いて見切れを防ぐ
+  const tipAbove = hover ? hover.y > wrapperH * 0.55 : false;
 
   // 出来事バンドの中心 y（最上段）
   const bandY = HEADER_H + ROW_H / 2;
@@ -406,7 +409,12 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       {hover && !dragging && (
         <div
           className="pointer-events-none absolute z-10 rounded-md border border-gray-200 bg-white p-3 text-xs shadow-lg"
-          style={{ left: tipLeft, top: hover.y + 12, width: tipW }}
+          style={{
+            left: tipLeft,
+            top: tipAbove ? hover.y - 12 : hover.y + 12,
+            transform: tipAbove ? "translateY(-100%)" : "none",
+            width: tipW,
+          }}
         >
           <div className="mb-1 flex items-center gap-2">
             <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: LAYER_COLOR[hover.lane.layer] }} />
