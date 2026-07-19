@@ -20,6 +20,10 @@ export const seedOrganizations: Organization[] = [
   { id: 5, name: "海軍", kind: "海軍", description: "世界政府直轄の軍事組織。", color: "#1d4ed8" },
   { id: 6, name: "光月家", kind: "勢力", description: "ワノ国の将軍家。ポーネグリフを刻む石工の一族。", color: "#7c3aed" },
   { id: 7, name: "オハラ", kind: "機関", description: "歴史の本文を研究した考古学の島（学者機関）。", color: "#059669" },
+  { id: 8, name: "革命軍", kind: "勢力", description: "ドラゴン率いる、世界政府に反旗を翻す組織。", color: "#16a34a" },
+  { id: 9, name: "ロックス海賊団", kind: "海賊団", description: "ジーベック率いた、かつて最凶と恐れられた海賊団。", color: "#374151" },
+  { id: 10, name: "ビッグマム海賊団", kind: "海賊団", description: "四皇ビッグ・マム率いる海賊団。", color: "#db2777" },
+  { id: 11, name: "百獣海賊団", kind: "海賊団", description: "四皇カイドウ率いる海賊団。", color: "#4338ca" },
 ];
 
 export const seedCharacterOrganizations: CharacterOrganization[] = [
@@ -44,6 +48,32 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 15, organization_id: 4, role: "船大工", sort_order: 0 },
   { character_id: 16, organization_id: 4, role: "音楽家", sort_order: 0 },
   { character_id: 17, organization_id: 4, role: "操舵手", sort_order: 0 },
+  // 革命軍(8)
+  { character_id: 18, organization_id: 8, role: "総司令官", sort_order: 0 },
+  { character_id: 19, organization_id: 8, role: "幹部", sort_order: 0 },
+  { character_id: 20, organization_id: 8, role: "幹部", sort_order: 0 },
+  { character_id: 21, organization_id: 8, role: "参謀総長", sort_order: 0 },
+  // 海軍(5)
+  { character_id: 22, organization_id: 5, role: "元帥", sort_order: 0 },
+  { character_id: 23, organization_id: 5, role: "中将", sort_order: 0 },
+  // ロックス海賊団(9) と 自派
+  { character_id: 24, organization_id: 9, role: "船長", sort_order: 0 },
+  { character_id: 25, organization_id: 10, role: "船長", sort_order: 0 },
+  { character_id: 25, organization_id: 9, role: "大幹部", sort_order: 1 },
+  { character_id: 26, organization_id: 11, role: "船長", sort_order: 0 },
+  { character_id: 26, organization_id: 9, role: "見習い", sort_order: 1 },
+  { character_id: 27, organization_id: 9, role: "幹部", sort_order: 0 },
+  { character_id: 28, organization_id: 9, role: "幹部", sort_order: 0 },
+  { character_id: 29, organization_id: 9, role: "幹部", sort_order: 0 },
+  { character_id: 30, organization_id: 9, role: "幹部", sort_order: 0 },
+  { character_id: 31, organization_id: 9, role: "幹部", sort_order: 0 },
+  { character_id: 32, organization_id: 9, role: "船員", sort_order: 0 },
+  { character_id: 33, organization_id: 9, role: "船員", sort_order: 0 },
+  { character_id: 33, organization_id: 10, role: "コック", sort_order: 1 },
+  { character_id: 34, organization_id: 9, role: "船員", sort_order: 0 },
+  { character_id: 35, organization_id: 9, role: "船員", sort_order: 0 },
+  { character_id: 36, organization_id: 9, role: "船員", sort_order: 0 },
+  { character_id: 4, organization_id: 9, role: "見習い", sort_order: 1 },
 ];
 
 // キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
@@ -98,6 +128,25 @@ export const seedCharacters: Character[] = [
   { id: 15, name: "フランキー", full_name: "フランキー", hidden_name: "カティ・フラム", persona: null, epithet: "鉄人", birth_year: 1488, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味船大工。サニー号を造ったサイボーグ。" },
   { id: 16, name: "ブルック", full_name: "ブルック", hidden_name: null, persona: null, epithet: "ソウルキング", birth_year: 1434, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味音楽家。ヨミヨミの実で蘇った骸骨剣士。" },
   { id: 17, name: "ジンベエ", full_name: "ジンベエ", hidden_name: null, persona: null, epithet: "海侠", birth_year: 1478, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味操舵手。元王下七武海の魚人。" },
+  { id: 18, name: "ドラゴン", full_name: "モンキー・D・ドラゴン", hidden_name: null, persona: null, epithet: "世界最悪の犯罪者", birth_year: 1469, death_year: null, is_approximate: true, image_url: null, notes: "革命軍総司令官。世界政府最大の脅威で、ルフィの実父。" },
+  { id: 19, name: "イワンコフ", full_name: "エンポリオ・イワンコフ", hidden_name: null, persona: null, epithet: "女王イワ様", birth_year: 1471, death_year: null, is_approximate: false, image_url: null, notes: "革命軍幹部。ホルホルの実でカマバッカ王国の女王。" },
+  { id: 20, name: "くま", full_name: "バーソロミュー・くま", hidden_name: null, persona: null, epithet: "暴君", birth_year: 1477, death_year: null, is_approximate: false, image_url: null, notes: "革命軍幹部・元王下七武海。改造されパシフィスタ化。" },
+  { id: 21, name: "サボ", full_name: "サボ", hidden_name: null, persona: null, epithet: "炎帝", birth_year: 1502, death_year: null, is_approximate: false, image_url: null, notes: "革命軍No.2参謀総長。エースの意志を継ぐルフィの義兄。" },
+  { id: 22, name: "センゴク", full_name: "センゴク", hidden_name: null, persona: null, epithet: "仏のセンゴク", birth_year: 1445, death_year: null, is_approximate: false, image_url: null, notes: "元海軍元帥。ヒトヒトの実 幻獣種 大仏の能力者。" },
+  { id: 23, name: "スモーカー", full_name: "スモーカー", hidden_name: null, persona: null, epithet: "白猟のスモーカー", birth_year: 1488, death_year: null, is_approximate: false, image_url: null, notes: "海軍中将。モクモクの実の能力者。" },
+  { id: 24, name: "ロックス", full_name: "ロックス・D・ジーベック", hidden_name: "デービー・D・ジーベック", persona: null, epithet: null, birth_year: 1443, death_year: 1486, is_approximate: true, image_url: null, notes: "ロックス海賊団船長。ゴッドバレー事件で敗れ死亡した最凶海賊。" },
+  { id: 25, name: "ビッグマム", full_name: "シャーロット・リンリン", hidden_name: null, persona: null, epithet: null, birth_year: 1456, death_year: 1524, is_approximate: false, image_url: null, notes: "四皇の一人。元ロックスの大幹部。ワノ国で敗北。" },
+  { id: 26, name: "カイドウ", full_name: "カイドウ", hidden_name: null, persona: null, epithet: "百獣のカイドウ", birth_year: 1465, death_year: 1524, is_approximate: false, image_url: null, notes: "四皇の一人。ロックス時代は見習い。ワノ国で敗北。" },
+  { id: 27, name: "シキ", full_name: "シキ", hidden_name: null, persona: null, epithet: "金獅子のシキ", birth_year: 1456, death_year: null, is_approximate: true, image_url: null, notes: "ロジャーと並ぶ大海賊。インペルダウンを初脱獄した男。" },
+  { id: 28, name: "ミス・バッキン", full_name: "バッキンガム・ステューシー", hidden_name: null, persona: null, epithet: null, birth_year: 1454, death_year: null, is_approximate: true, image_url: null, notes: "ロックスの女海賊。CP0のステューシーは彼女のクローン。" },
+  { id: 29, name: "マーロン", full_name: "ドン・マーロン", hidden_name: null, persona: null, epithet: null, birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "ロックス創設メンバー。西の海の顔役。" },
+  { id: 30, name: "王直", full_name: null, hidden_name: null, persona: null, epithet: null, birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "元ハチノスの支配者。ロックス創設メンバー。" },
+  { id: 31, name: "ガンズイ", full_name: "ガンズイ", hidden_name: null, persona: null, epithet: null, birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "ロックス創設メンバーの一員。" },
+  { id: 32, name: "キャプテン・ジョン", full_name: "キャプテン・ジョン", hidden_name: null, persona: null, epithet: null, birth_year: 1456, death_year: null, is_approximate: true, image_url: null, notes: "財宝を隠した伝説の海賊。スリラーバークで死体が登場。" },
+  { id: 33, name: "シュトロイゼン", full_name: "シュトロイゼン", hidden_name: null, persona: null, epithet: null, birth_year: 1454, death_year: null, is_approximate: true, image_url: null, notes: "ココココの実の能力者。後にビッグマム海賊団総料理長。" },
+  { id: 34, name: "バーベル", full_name: "バーベル", hidden_name: null, persona: null, epithet: null, birth_year: 1460, death_year: null, is_approximate: true, image_url: null, notes: "ロックス創設メンバーのナマズの魚人。" },
+  { id: 35, name: "銀斧", full_name: "凶", hidden_name: null, persona: null, epithet: "銀斧", birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "ハチノス制圧後にロックスへ加入した元殺し屋。" },
+  { id: 36, name: "グロリオーサ", full_name: "グロリオーサ", hidden_name: null, persona: null, epithet: "ニョン婆", birth_year: 1440, death_year: null, is_approximate: true, image_url: null, notes: "元アマゾン・リリー皇帝。現在は同島の長老。" },
 ];
 
 export const seedEventCategories: EventCategory[] = [
