@@ -24,6 +24,32 @@ export type Character = {
   is_approximate: boolean;
   image_url: string | null;
   notes: string | null;
+  /** 取得時に junction を結合して付与する所属組織（DB列ではない派生データ） */
+  orgs?: CharacterOrg[];
+};
+
+export type Organization = {
+  id: number;
+  name: string;
+  /** 例: 海賊団 / 海軍 / 勢力 / 機関 */
+  kind: string | null;
+  description: string | null;
+  color: string | null;
+};
+
+export type CharacterOrganization = {
+  character_id: number;
+  organization_id: number;
+  role: string | null;
+  sort_order: number;
+};
+
+/** キャラに紐づけて表示する所属（organizations と junction を結合した派生型） */
+export type CharacterOrg = {
+  name: string;
+  kind: string | null;
+  role: string | null;
+  color: string | null;
 };
 
 export type EventRow = {

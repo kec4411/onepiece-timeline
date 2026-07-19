@@ -1,8 +1,8 @@
 import TimelineView from "@/components/TimelineView";
 import { getSupabase } from "@/lib/supabase";
 import { getPool } from "@/lib/db";
-import { seedCalendars, seedCharacters, seedEvents } from "@/lib/seed";
-import type { Calendar, Character, EventRow } from "@/types/db";
+import { seedCalendars, seedCharacterOrganizations, seedCharacters, seedEvents, seedOrganizations } from "@/lib/seed";
+import type { Calendar, Character, CharacterOrganization, EventRow, Organization } from "@/types/db";
 
 // 常に最新を読む（キャッシュしない）。MVP では十分。
 export const dynamic = "force-dynamic";
@@ -10,9 +10,29 @@ export const dynamic = "force-dynamic";
 type Source = "postgres" | "supabase" | "seed";
 type Loaded = { calendars: Calendar[]; characters: Character[]; events: EventRow[]; source: Source };
 
+// organizations + junction をキャラに結合して orgs を付与する。
+function attachOrgs(characters: Character[], orgs: Organization[], links: CharacterOrganization[]): Character[] {
+  const orgById = new Map(orgs.map((o) => [o.id, o]));
+  const byChar = new Map<number, CharacterOrganization[]>();
+  for (const l of links) {
+    if (!byChar.has(l.character_id)) byChar.set(l.character_id, []);
+    byChar.get(l.character_id)!.push(l);
+  }
+  return characters.map((c) => ({
+    ...c,
+    orgs: (byChar.get(c.id) ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((l) => {
+        const o = orgById.get(l.organization_id);
+        return { name: o?.name ?? "", kind: o?.kind ?? null, role: l.role, color: o?.color ?? null };
+      })
+      .filter((o) => o.name),
+  }));
+}
+
 const seed: Loaded = {
   calendars: seedCalendars,
-  characters: seedCharacters,
+  characters: attachOrgs(seedCharacters, seedOrganizations, seedCharacterOrganizations),
   events: seedEvents,
   source: "seed",
 };
@@ -23,14 +43,16 @@ async function loadData(): Promise<Loaded> {
   const pool = getPool();
   if (pool) {
     try {
-      const [cal, chars, evs] = await Promise.all([
+      const [cal, chars, evs, orgs, links] = await Promise.all([
         pool.query("select * from calendars order by id"),
         pool.query("select * from characters order by birth_year"),
         pool.query("select * from events order by start_year"),
+        pool.query("select * from organizations order by id"),
+        pool.query("select * from character_organizations"),
       ]);
       return {
         calendars: cal.rows as Calendar[],
-        characters: chars.rows as Character[],
+        characters: attachOrgs(chars.rows as Character[], orgs.rows as Organization[], links.rows as CharacterOrganization[]),
         events: evs.rows as EventRow[],
         source: "postgres",
       };
@@ -42,15 +64,17 @@ async function loadData(): Promise<Loaded> {
   // 2) Supabase（本番）
   const supabase = getSupabase();
   if (supabase) {
-    const [cal, chars, evs] = await Promise.all([
+    const [cal, chars, evs, orgs, links] = await Promise.all([
       supabase.from("calendars").select("*").order("id"),
       supabase.from("characters").select("*").order("birth_year"),
       supabase.from("events").select("*").order("start_year"),
+      supabase.from("organizations").select("*").order("id"),
+      supabase.from("character_organizations").select("*"),
     ]);
-    if (!cal.error && !chars.error && !evs.error) {
+    if (!cal.error && !chars.error && !evs.error && !orgs.error && !links.error) {
       return {
         calendars: cal.data as Calendar[],
-        characters: chars.data as Character[],
+        characters: attachOrgs(chars.data as Character[], orgs.data as Organization[], links.data as CharacterOrganization[]),
         events: evs.data as EventRow[],
         source: "supabase",
       };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { Calendar, Character, EventRow } from "@/types/db";
+import type { Calendar, Character, CharacterOrg, EventRow } from "@/types/db";
 import { formatYear, makeYearScale, yearTicks } from "@/lib/time";
 
 type Props = {
@@ -23,6 +23,7 @@ type Lane = {
   approximate: boolean;
   category: string | null;
   description: string | null;
+  orgs?: CharacterOrg[];
 };
 
 type View = { start: number; end: number };
@@ -80,7 +81,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     charLanes.push({
       key: `c-${ch.id}`, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
       start: ch.birth_year, end: ch.death_year ?? ch.birth_year, open: ch.death_year == null,
-      layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes,
+      layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes, orgs: ch.orgs,
     });
   }
   charLanes.sort((a, b) => a.start - b.start);
@@ -444,6 +445,16 @@ export default function GanttChart({ calendars, characters, events, calendarId }
                 : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${formatYear(hover.lane.end, calendar)}`}
             <span className="ml-1 text-gray-400">（{calendar.name}）</span>
           </div>
+          {hover.lane.orgs && hover.lane.orgs.length > 0 && (
+            <div className="mb-1 flex flex-wrap gap-1">
+              {hover.lane.orgs.map((o, i) => (
+                <span key={i} className="inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-gray-600">
+                  <span className="inline-block h-2 w-2 rounded-full" style={{ background: o.color ?? "#9ca3af" }} />
+                  {o.name}{o.role ? `・${o.role}` : ""}
+                </span>
+              ))}
+            </div>
+          )}
           {hover.lane.description && <p className="text-gray-600">{hover.lane.description}</p>}
         </div>
       )}

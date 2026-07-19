@@ -35,18 +35,42 @@ create table if not exists events (
   importance     smallint not null default 3 check (importance between 1 and 5)
 );
 
+-- 組織（海賊団・海軍・勢力など）
+create table if not exists organizations (
+  id          bigint generated always as identity primary key,
+  name        text not null,
+  kind        text,        -- 例: 海賊団 / 海軍 / 勢力 / 機関
+  description text,
+  color       text         -- 将来の色分け用（任意）
+);
+
+-- キャラ ↔ 組織（多対多。1人が複数所属：例 おでん＝ロジャー/白ひげ/光月家）
+create table if not exists character_organizations (
+  character_id    bigint not null references characters(id)    on delete cascade,
+  organization_id bigint not null references organizations(id) on delete cascade,
+  role            text,        -- 例: 船長 / 副船長 / 隊長 / 剣士
+  sort_order      integer not null default 0,
+  primary key (character_id, organization_id)
+);
+
 -- ── RLS: 公開read（書き込みは当面なし） ──────────────────
-alter table calendars  enable row level security;
-alter table characters enable row level security;
-alter table events     enable row level security;
+alter table calendars               enable row level security;
+alter table characters              enable row level security;
+alter table events                  enable row level security;
+alter table organizations           enable row level security;
+alter table character_organizations enable row level security;
 
-drop policy if exists "public read calendars"  on calendars;
-drop policy if exists "public read characters" on characters;
-drop policy if exists "public read events"     on events;
+drop policy if exists "public read calendars"               on calendars;
+drop policy if exists "public read characters"              on characters;
+drop policy if exists "public read events"                  on events;
+drop policy if exists "public read organizations"           on organizations;
+drop policy if exists "public read character_organizations" on character_organizations;
 
-create policy "public read calendars"  on calendars  for select using (true);
-create policy "public read characters" on characters for select using (true);
-create policy "public read events"     on events     for select using (true);
+create policy "public read calendars"               on calendars               for select using (true);
+create policy "public read characters"              on characters              for select using (true);
+create policy "public read events"                  on events                  for select using (true);
+create policy "public read organizations"           on organizations           for select using (true);
+create policy "public read character_organizations" on character_organizations for select using (true);
 
 -- ── データ投入 ──────────────────────────────────────────
 -- データは supabase/seed.sql を実行してください（実データ。TRUNCATE→INSERT）。

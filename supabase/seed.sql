@@ -9,7 +9,7 @@
 --   として格納しています。★相対的な間隔は原作準拠で正確／絶対数値は便宜設定★。
 --   出典: One Piece Wiki（Void Century, God Valley Incident, Gol D. Roger, Kouzuki Oden 他）。
 
-truncate table calendars, characters, events restart identity;
+truncate table calendars, characters, events, organizations, character_organizations restart identity cascade;
 
 -- 暦（表示ラベル。海円暦=基準、天暦=表示切替のサンプル）
 insert into calendars (name, description, offset_from_canonical) values
@@ -48,3 +48,30 @@ insert into events (name, description, start_year, end_year, is_approximate, cat
   ('世界会議（レヴェリー）',          '加盟国の王が集う会議。水面下で政治が動いた。',            1523, null, true,  '政治', 3),
   ('ワノ国編・カイドウ&オロチ打倒',   '光月家と同盟がカイドウらを倒しワノ国を解放。',            1524, null, true,  '戦争', 4),
   ('エッグヘッド事件・最終章の始まり', 'ベガパンクを巡り五老星が動き、最終章が本格化。',          1524, null, true,  '事件', 4);
+
+-- 組織（id は挿入順: 1..7）
+insert into organizations (name, kind, description, color) values
+  ('ロジャー海賊団', '海賊団', 'ひとつなぎの大秘宝に到達した海賊王ロジャーの一味。', '#b91c1c'),
+  ('白ひげ海賊団',   '海賊団', '世界最強の男・白ひげ率いる大所帯の海賊団。',         '#f59e0b'),
+  ('赤髪海賊団',     '海賊団', '四皇シャンクス率いる海賊団。',                       '#dc2626'),
+  ('麦わらの一味',   '海賊団', 'ルフィを船長とする物語の主役海賊団。',               '#eab308'),
+  ('海軍',           '海軍',   '世界政府直轄の軍事組織。',                           '#1d4ed8'),
+  ('光月家',         '勢力',   'ワノ国の将軍家。ポーネグリフを刻む石工の一族。',     '#7c3aed'),
+  ('オハラ',         '機関',   '歴史の本文を研究した考古学の島（学者機関）。',       '#059669');
+
+-- キャラ ↔ 組織（多対多。character_id / organization_id は上記の挿入順 id）
+insert into character_organizations (character_id, organization_id, role, sort_order) values
+  (1, 1, '船長',       0),   -- ロジャー: ロジャー海賊団
+  (2, 1, '副船長',     0),   -- レイリー: ロジャー海賊団
+  (3, 5, '中将',       0),   -- ガープ: 海軍
+  (4, 2, '船長',       0),   -- 白ひげ: 白ひげ海賊団
+  (5, 6, '大名',       0),   -- おでん: 光月家
+  (5, 2, '隊長',       1),   -- おでん: 白ひげ海賊団
+  (5, 1, '見習い',     2),   -- おでん: ロジャー海賊団
+  (6, 1, '見習い',     0),   -- シャンクス: ロジャー海賊団
+  (6, 3, '船長',       1),   -- シャンクス: 赤髪海賊団
+  (7, 7, '学者',       0),   -- ロビン: オハラ
+  (7, 4, '考古学者',   1),   -- ロビン: 麦わらの一味
+  (8, 2, '二番隊隊長', 0),   -- エース: 白ひげ海賊団
+  (9, 4, '戦闘員',     0),   -- ゾロ: 麦わらの一味
+  (10, 4, '船長',      0);   -- ルフィ: 麦わらの一味

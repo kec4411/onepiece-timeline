@@ -59,8 +59,12 @@ npm run dev                        # PostgreSQL コンテナ起動 → http://lo
 | `lib/time.ts` | 年↔暦の変換・線形スケール・目盛り生成 |
 | `lib/seed.ts` | DB 未接続時のフォールバック用データ |
 | `types/db.ts` | DB 行の型 |
-| `supabase/schema.sql` | テーブル定義 + RLS |
+| `supabase/schema.sql` | テーブル定義 + RLS（organizations・character_organizations 含む） |
 | `supabase/seed.sql` | 実データ（TRUNCATE→INSERT） |
+
+**データモデル**: `characters`（生涯）/ `events`（出来事）/ `calendars`（暦）に加え、
+`organizations`（海賊団・海軍など）と中間テーブル `character_organizations`（キャラ↔組織の多対多。
+例: おでん＝ロジャー海賊団＋白ひげ海賊団＋光月家）。所属はキャラのツールチップに表示。
 
 ## 時間の考え方
 

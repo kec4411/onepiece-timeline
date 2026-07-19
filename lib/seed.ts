@@ -1,4 +1,4 @@
-import type { Calendar, Character, EventRow } from "@/types/db";
+import type { Calendar, Character, CharacterOrganization, EventRow, Organization } from "@/types/db";
 
 // ローカル・フォールバック用データ（Supabase 未接続時に表示）。
 // supabase/seed.sql と同じ内容。ONE PIECE 作中年代（最新章まで／ネタバレ含む）。
@@ -10,6 +10,33 @@ import type { Calendar, Character, EventRow } from "@/types/db";
 export const seedCalendars: Calendar[] = [
   { id: 1, name: "海円暦", description: "本アプリの基準暦。現在を便宜上1524年に設定（相対年は原作準拠）。", offset_from_canonical: 0 },
   { id: 2, name: "天暦", description: "サンプルの別暦（非公式）。表示切替の例。", offset_from_canonical: -1000 },
+];
+
+export const seedOrganizations: Organization[] = [
+  { id: 1, name: "ロジャー海賊団", kind: "海賊団", description: "ひとつなぎの大秘宝に到達した海賊王ロジャーの一味。", color: "#b91c1c" },
+  { id: 2, name: "白ひげ海賊団", kind: "海賊団", description: "世界最強の男・白ひげ率いる大所帯の海賊団。", color: "#f59e0b" },
+  { id: 3, name: "赤髪海賊団", kind: "海賊団", description: "四皇シャンクス率いる海賊団。", color: "#dc2626" },
+  { id: 4, name: "麦わらの一味", kind: "海賊団", description: "ルフィを船長とする物語の主役海賊団。", color: "#eab308" },
+  { id: 5, name: "海軍", kind: "海軍", description: "世界政府直轄の軍事組織。", color: "#1d4ed8" },
+  { id: 6, name: "光月家", kind: "勢力", description: "ワノ国の将軍家。ポーネグリフを刻む石工の一族。", color: "#7c3aed" },
+  { id: 7, name: "オハラ", kind: "機関", description: "歴史の本文を研究した考古学の島（学者機関）。", color: "#059669" },
+];
+
+export const seedCharacterOrganizations: CharacterOrganization[] = [
+  { character_id: 1, organization_id: 1, role: "船長", sort_order: 0 },
+  { character_id: 2, organization_id: 1, role: "副船長", sort_order: 0 },
+  { character_id: 3, organization_id: 5, role: "中将", sort_order: 0 },
+  { character_id: 4, organization_id: 2, role: "船長", sort_order: 0 },
+  { character_id: 5, organization_id: 6, role: "大名", sort_order: 0 },
+  { character_id: 5, organization_id: 2, role: "隊長", sort_order: 1 },
+  { character_id: 5, organization_id: 1, role: "見習い", sort_order: 2 },
+  { character_id: 6, organization_id: 1, role: "見習い", sort_order: 0 },
+  { character_id: 6, organization_id: 3, role: "船長", sort_order: 1 },
+  { character_id: 7, organization_id: 7, role: "学者", sort_order: 0 },
+  { character_id: 7, organization_id: 4, role: "考古学者", sort_order: 1 },
+  { character_id: 8, organization_id: 2, role: "二番隊隊長", sort_order: 0 },
+  { character_id: 9, organization_id: 4, role: "戦闘員", sort_order: 0 },
+  { character_id: 10, organization_id: 4, role: "船長", sort_order: 0 },
 ];
 
 export const seedCharacters: Character[] = [
