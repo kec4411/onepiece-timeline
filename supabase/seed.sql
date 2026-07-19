@@ -16,13 +16,13 @@ insert into calendars (name, description, offset_from_canonical) values
   ('海円暦', '本アプリの基準暦。現在を便宜上1524年に設定（相対年は原作準拠）。', 0),
   ('天暦',   'サンプルの別暦（非公式）。表示切替の例。', -1000);
 
--- 出来事カテゴリ（id は挿入順 1..5。icon=絵文字）
+-- 出来事カテゴリ（id は挿入順 1..5。icon=アイコンキー。フロントの CATEGORY_ICONS に対応）
 insert into event_categories (name, icon, color, sort_order) values
-  ('時代', '⏳',  '#6b7280', 1),
-  ('政治', '🏛️', '#0ea5e9', 2),
-  ('事件', '⚡',  '#ef4444', 3),
-  ('戦争', '⚔️', '#b45309', 4),
-  ('冒険', '⛵',  '#10b981', 5);
+  ('時代', 'hourglass', '#6b7280', 1),
+  ('政治', 'bank',      '#0ea5e9', 2),
+  ('事件', 'bolt',      '#ef4444', 3),
+  ('戦争', 'swords',    '#b45309', 4),
+  ('冒険', 'ship',      '#10b981', 5);
 
 -- キャラクターの生涯（birth/death = canonical年、存命は death を null）
 insert into characters (name, epithet, birth_year, death_year, is_approximate, notes) values

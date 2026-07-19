@@ -27,7 +27,7 @@ create table if not exists characters (
 create table if not exists event_categories (
   id         bigint generated always as identity primary key,
   name       text not null,
-  icon       text,        -- 絵文字（例: ⚔️ / ⚡ / ⛵）
+  icon       text,        -- アイコンキー（hourglass/bank/bolt/swords/ship 等。フロントの CATEGORY_ICONS に対応）
   color      text,
   sort_order integer not null default 0
 );

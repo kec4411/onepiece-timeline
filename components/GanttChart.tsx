@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Calendar, Character, CharacterOrg, EventRow } from "@/types/db";
 import { formatYear, makeYearScale, yearTicks } from "@/lib/time";
+import { CATEGORY_ICONS, CategoryIcon } from "@/lib/icons";
 
 type Props = {
   calendars: Calendar[];
@@ -27,8 +28,10 @@ type Lane = {
   importance: number;
   approximate: boolean;
   category: string | null;
-  /** カテゴリの絵文字アイコン（点イベントの描画に使用） */
+  /** カテゴリのアイコンキー（点イベントの描画に使用。CATEGORY_ICONS 参照） */
   icon?: string | null;
+  /** カテゴリ色（イベントの着色に使用） */
+  color?: string | null;
   description: string | null;
   orgs?: CharacterOrg[];
 };
@@ -96,7 +99,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
   const evLanes: Lane[] = events.map((ev) => ({
     key: `e-${ev.id}`, label: ev.name, start: ev.start_year, end: ev.end_year ?? ev.start_year, open: false,
     layer: "event", importance: ev.importance, approximate: ev.is_approximate,
-    category: ev.category?.name ?? null, icon: ev.category?.icon ?? null, description: ev.description,
+    category: ev.category?.name ?? null, icon: ev.category?.icon ?? null, color: ev.category?.color ?? null, description: ev.description,
   }));
 
   // キャラ領域の視覚行を構築（グループ化時は主所属ごとに見出し行を挿入）
@@ -402,28 +405,30 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
             const x2 = x(ev.end);
             const active = hover?.lane.key === ev.key;
             const op = active ? 1 : 0.4 + ev.importance * 0.11;
+            const evColor = ev.color ?? LAYER_COLOR.event;
             if (isPoint) {
-              // 点イベント（end_year=null）はカテゴリの絵文字アイコンで表示（無ければダイヤ）
-              if (ev.icon) {
-                const fs = 14 + ev.importance * 2; // 重要度でアイコンサイズ
+              // 点イベント（end_year=null）はカテゴリの SVG アイコンで表示（無ければダイヤ）
+              const iconFn = ev.icon ? CATEGORY_ICONS[ev.icon] : undefined;
+              if (iconFn) {
+                const s = (16 + ev.importance * 2) * (active ? 1.15 : 1); // 重要度でサイズ
                 return (
-                  <text key={`ev-${ev.key}`} x={x1} y={bandY} textAnchor="middle" dominantBaseline="central"
-                    fontSize={active ? fs + 3 : fs} opacity={active ? 1 : 0.55 + ev.importance * 0.09} style={{ pointerEvents: "none" }}>
-                    {ev.icon}
-                  </text>
+                  <g key={`ev-${ev.key}`} transform={`translate(${x1 - s / 2}, ${bandY - s / 2}) scale(${s / 24})`}
+                    opacity={active ? 1 : 0.6 + ev.importance * 0.08} style={{ pointerEvents: "none" }}>
+                    {iconFn(evColor)}
+                  </g>
                 );
               }
               const s = 10 + ev.importance * 2;
               return (
                 <g key={`ev-${ev.key}`} transform={`translate(${x1}, ${bandY})`} style={{ pointerEvents: "none" }}>
-                  <rect x={-s / 2} y={-s / 2} width={s} height={s} transform="rotate(45)" fill={LAYER_COLOR.event} opacity={op}
+                  <rect x={-s / 2} y={-s / 2} width={s} height={s} transform="rotate(45)" fill={evColor} opacity={op}
                     stroke={active ? "#7c2d12" : "none"} strokeWidth={active ? 1.5 : 0} />
                 </g>
               );
             }
             return (
               <rect key={`ev-${ev.key}`} x={x1} y={bandY - BAR_H / 2} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4}
-                fill={LAYER_COLOR.event} opacity={op} stroke={active ? "#7c2d12" : "none"} strokeWidth={active ? 1.5 : 0}
+                fill={evColor} opacity={op} stroke={active ? "#7c2d12" : "none"} strokeWidth={active ? 1.5 : 0}
                 style={{ pointerEvents: "none" }} />
             );
           })}
@@ -481,7 +486,12 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           </div>
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
             <span>{LAYER_LABEL[hover.lane.layer]}</span>
-            {hover.lane.layer === "event" && hover.lane.category && <span>{hover.lane.icon ? `${hover.lane.icon} ` : ""}{hover.lane.category}</span>}
+            {hover.lane.layer === "event" && hover.lane.category && (
+              <span className="inline-flex items-center gap-1">
+                <CategoryIcon iconKey={hover.lane.icon} color={hover.lane.color ?? LAYER_COLOR.event} size={13} />
+                {hover.lane.category}
+              </span>
+            )}
             {hover.lane.layer === "event" && (
               <span title={`重要度 ${hover.lane.importance}/5`}>
                 {"★".repeat(hover.lane.importance)}

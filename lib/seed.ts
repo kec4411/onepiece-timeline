@@ -53,11 +53,11 @@ export const seedCharacters: Character[] = [
 ];
 
 export const seedEventCategories: EventCategory[] = [
-  { id: 1, name: "時代", icon: "⏳", color: "#6b7280", sort_order: 1 },
-  { id: 2, name: "政治", icon: "🏛️", color: "#0ea5e9", sort_order: 2 },
-  { id: 3, name: "事件", icon: "⚡", color: "#ef4444", sort_order: 3 },
-  { id: 4, name: "戦争", icon: "⚔️", color: "#b45309", sort_order: 4 },
-  { id: 5, name: "冒険", icon: "⛵", color: "#10b981", sort_order: 5 },
+  { id: 1, name: "時代", icon: "hourglass", color: "#6b7280", sort_order: 1 },
+  { id: 2, name: "政治", icon: "bank", color: "#0ea5e9", sort_order: 2 },
+  { id: 3, name: "事件", icon: "bolt", color: "#ef4444", sort_order: 3 },
+  { id: 4, name: "戦争", icon: "swords", color: "#b45309", sort_order: 4 },
+  { id: 5, name: "冒険", icon: "ship", color: "#10b981", sort_order: 5 },
 ];
 
 export const seedEvents: EventRow[] = [

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import GanttChart from "@/components/GanttChart";
+import { CategoryIcon } from "@/lib/icons";
 import type { Calendar, Character, EventRow } from "@/types/db";
 
 type Props = {
@@ -21,11 +22,11 @@ export default function TimelineView({ calendars, characters, events }: Props) {
 
   // 出来事カテゴリ（結合済み category から抽出。名前＋アイコン）。未選択セットで「除外」を管理。
   const categories = useMemo(() => {
-    const seen = new Map<string, string | null>();
+    const seen = new Map<string, { icon: string | null; color: string | null }>();
     for (const e of events) {
-      if (e.category && !seen.has(e.category.name)) seen.set(e.category.name, e.category.icon);
+      if (e.category && !seen.has(e.category.name)) seen.set(e.category.name, { icon: e.category.icon, color: e.category.color });
     }
-    return [...seen.entries()].map(([name, icon]) => ({ name, icon }));
+    return [...seen.entries()].map(([name, v]) => ({ name, icon: v.icon, color: v.color }));
   }, [events]);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
 
@@ -118,7 +119,8 @@ export default function TimelineView({ calendars, characters, events }: Props) {
             <span className="w-16 text-sm text-gray-500">カテゴリ</span>
             {categories.map((c) => (
               <Chip key={c.name} active={!hiddenCategories.has(c.name)} onClick={() => toggleCategory(c.name)}>
-                {c.icon ? `${c.icon} ${c.name}` : c.name}
+                <CategoryIcon iconKey={c.icon} color={c.color ?? "#6b7280"} size={13} />
+                {c.name}
               </Chip>
             ))}
           </div>
