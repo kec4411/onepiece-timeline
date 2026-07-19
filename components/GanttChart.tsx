@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef, useState } from "react";
 import type { Calendar, Character, EventRow } from "@/types/db";
 import { formatYear, makeYearScale, yearTicks } from "@/lib/time";
 
@@ -20,6 +23,9 @@ type Lane = {
   layer: "character" | "event";
   importance: number;
   approximate: boolean;
+  category: string | null;
+  description: string | null;
+  notes: string | null;
 };
 
 const GUTTER = 208; // 左のラベル列
@@ -34,11 +40,19 @@ const LAYER_COLOR = {
   event: "#d97706", // amber-600
 } as const;
 
+const LAYER_LABEL = {
+  character: "キャラ",
+  event: "出来事",
+} as const;
+
 function truncate(s: string, n = 15): string {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
 export default function GanttChart({ calendars, characters, events, calendarId }: Props) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [hover, setHover] = useState<{ lane: Lane; x: number; y: number } | null>(null);
+
   const calendar =
     calendars.find((c) => c.id === calendarId) ??
     calendars[0] ?? { id: 0, name: "海円暦", description: null, offset_from_canonical: 0 };
@@ -57,6 +71,9 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       layer: "character",
       importance: 3,
       approximate: ch.is_approximate,
+      category: ch.epithet,
+      description: ch.notes,
+      notes: null,
     });
   }
   for (const ev of events) {
@@ -69,11 +86,14 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       layer: "event",
       importance: ev.importance,
       approximate: ev.is_approximate,
+      category: ev.category,
+      description: ev.description,
+      notes: null,
     });
   }
 
   if (lanes.length === 0) {
-    return <p className="text-sm text-gray-500">表示できるデータがありません。</p>;
+    return <p className="text-sm text-gray-500">表示できるデータがありません（フィルタ条件をご確認ください）。</p>;
   }
 
   // ── ドメイン（年範囲）とスケール ──────────────────────
@@ -97,100 +117,169 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const totalH = HEADER_H + ordered.length * ROW_H + 8;
   const ticks = yearTicks(minYear, maxYear);
 
+  function onRowMove(lane: Lane, e: React.MouseEvent) {
+    const rect = wrapperRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setHover({ lane, x: e.clientX - rect.left, y: e.clientY - rect.top });
+  }
+
+  const wrapperW = wrapperRef.current?.clientWidth ?? totalW;
+  const tipOnRight = hover ? hover.x > wrapperW / 2 : false;
+
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        width={totalW}
-        height={totalH}
-        viewBox={`0 0 ${totalW} ${totalH}`}
-        role="img"
-        aria-label="ワンピース年表 Gantt チャート"
-        className="min-w-full font-sans"
-      >
-        {/* 年目盛りの縦グリッド */}
-        {ticks.map((t) => (
-          <g key={`tick-${t}`}>
-            <line x1={x(t)} y1={HEADER_H - 8} x2={x(t)} y2={totalH} stroke="#e5e7eb" strokeWidth={1} />
-            <text x={x(t)} y={HEADER_H - 14} textAnchor="middle" fontSize={11} fill="#6b7280">
-              {formatYear(t, calendar)}
-            </text>
-          </g>
-        ))}
-
-        {/* 暦名の見出し */}
-        <text x={GUTTER} y={16} fontSize={11} fill="#9ca3af">
-          {calendar.name}（年）→
-        </text>
-
-        {/* 行 */}
-        {ordered.map((lane, i) => {
-          const y = HEADER_H + i * ROW_H;
-          const barY = y + (ROW_H - BAR_H) / 2;
-          const isPoint = lane.start === lane.end;
-          const x1 = x(lane.start);
-          const x2 = x(lane.open ? maxYear : lane.end);
-          const color = LAYER_COLOR[lane.layer];
-          const rangeLabel = isPoint
-            ? formatYear(lane.start, calendar, lane.approximate)
-            : `${formatYear(lane.start, calendar, lane.approximate)}–${lane.open ? "現在" : formatYear(lane.end, calendar)}`;
-
-          return (
-            <g key={lane.key}>
-              {i % 2 === 1 && (
-                <rect x={0} y={y} width={totalW} height={ROW_H} fill="#f9fafb" />
-              )}
-              {/* 左ラベル */}
-              <text x={12} y={y + ROW_H / 2 + 4} fontSize={12} fill="#111827">
-                {truncate(lane.label)}
-              </text>
-
-              {isPoint ? (
-                // 点イベント: ダイヤ型マーカー
-                <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
-                  <rect
-                    x={-BAR_H / 2}
-                    y={-BAR_H / 2}
-                    width={BAR_H}
-                    height={BAR_H}
-                    transform="rotate(45)"
-                    fill={color}
-                    opacity={0.85}
-                  />
-                </g>
-              ) : (
-                // 範囲バー
-                <rect
-                  x={x1}
-                  y={barY}
-                  width={Math.max(2, x2 - x1)}
-                  height={BAR_H}
-                  rx={4}
-                  fill={color}
-                  opacity={lane.layer === "event" ? 0.35 + lane.importance * 0.12 : 0.85}
-                />
-              )}
-              {/* 存命/進行中の「→現在」矢印 */}
-              {lane.open && (
-                <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={color}>
-                  →現在
-                </text>
-              )}
-              {/* 年ラベル（点はマーカー右、範囲はバー右） */}
-              <text
-                x={(isPoint ? x1 + BAR_H : x2) + (lane.open ? 44 : 6)}
-                y={barY + BAR_H - 3}
-                fontSize={10}
-                fill="#6b7280"
-              >
-                {lane.open ? "" : rangeLabel}
+    <div ref={wrapperRef} className="relative">
+      <div className="w-full overflow-x-auto">
+        <svg
+          width={totalW}
+          height={totalH}
+          viewBox={`0 0 ${totalW} ${totalH}`}
+          role="img"
+          aria-label="ワンピース年表 Gantt チャート"
+          className="min-w-full font-sans"
+        >
+          {/* 年目盛りの縦グリッド */}
+          {ticks.map((t) => (
+            <g key={`tick-${t}`}>
+              <line x1={x(t)} y1={HEADER_H - 8} x2={x(t)} y2={totalH} stroke="#e5e7eb" strokeWidth={1} />
+              <text x={x(t)} y={HEADER_H - 14} textAnchor="middle" fontSize={11} fill="#6b7280">
+                {formatYear(t, calendar)}
               </text>
             </g>
-          );
-        })}
+          ))}
 
-        {/* ガター境界線 */}
-        <line x1={GUTTER} y1={HEADER_H - 8} x2={GUTTER} y2={totalH} stroke="#d1d5db" strokeWidth={1} />
-      </svg>
+          {/* 暦名の見出し */}
+          <text x={GUTTER} y={16} fontSize={11} fill="#9ca3af">
+            {calendar.name}（年）→
+          </text>
+
+          {/* 行 */}
+          {ordered.map((lane, i) => {
+            const y = HEADER_H + i * ROW_H;
+            const barY = y + (ROW_H - BAR_H) / 2;
+            const isPoint = lane.start === lane.end;
+            const x1 = x(lane.start);
+            const x2 = x(lane.open ? maxYear : lane.end);
+            const color = LAYER_COLOR[lane.layer];
+            const rangeLabel = isPoint
+              ? formatYear(lane.start, calendar, lane.approximate)
+              : `${formatYear(lane.start, calendar, lane.approximate)}–${lane.open ? "現在" : formatYear(lane.end, calendar)}`;
+            const active = hover?.lane.key === lane.key;
+
+            return (
+              <g
+                key={lane.key}
+                onMouseMove={(e) => onRowMove(lane, e)}
+                onMouseLeave={() => setHover(null)}
+                style={{ cursor: "pointer" }}
+              >
+                {/* 行の背景（ホバー時ハイライト / 偶数行の薄い縞）＝当たり判定も兼ねる */}
+                <rect
+                  x={0}
+                  y={y}
+                  width={totalW}
+                  height={ROW_H}
+                  fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"}
+                />
+                {/* 左ラベル */}
+                <text x={12} y={y + ROW_H / 2 + 4} fontSize={12} fill="#111827">
+                  {truncate(lane.label)}
+                </text>
+
+                {isPoint ? (
+                  // 点イベント: ダイヤ型マーカー
+                  <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
+                    <rect
+                      x={-BAR_H / 2}
+                      y={-BAR_H / 2}
+                      width={BAR_H}
+                      height={BAR_H}
+                      transform="rotate(45)"
+                      fill={color}
+                      opacity={active ? 1 : 0.85}
+                    />
+                  </g>
+                ) : (
+                  // 範囲バー
+                  <rect
+                    x={x1}
+                    y={barY}
+                    width={Math.max(2, x2 - x1)}
+                    height={BAR_H}
+                    rx={4}
+                    fill={color}
+                    opacity={lane.layer === "event" ? 0.35 + lane.importance * 0.12 : 0.85}
+                    stroke={active ? "#1e3a8a" : "none"}
+                    strokeWidth={active ? 1.5 : 0}
+                  />
+                )}
+                {/* 存命/進行中の「→現在」矢印 */}
+                {lane.open && (
+                  <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={color}>
+                    →現在
+                  </text>
+                )}
+                {/* 年ラベル（範囲はバー右。open は矢印を出すため省略） */}
+                {!lane.open && (
+                  <text
+                    x={(isPoint ? x1 + BAR_H : x2) + 6}
+                    y={barY + BAR_H - 3}
+                    fontSize={10}
+                    fill="#6b7280"
+                  >
+                    {rangeLabel}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* ガター境界線 */}
+          <line x1={GUTTER} y1={HEADER_H - 8} x2={GUTTER} y2={totalH} stroke="#d1d5db" strokeWidth={1} />
+        </svg>
+      </div>
+
+      {/* ホバー・ツールチップ */}
+      {hover && (
+        <div
+          className="pointer-events-none absolute z-10 w-64 rounded-md border border-gray-200 bg-white p-3 text-xs shadow-lg"
+          style={{
+            left: hover.x + (tipOnRight ? -12 : 12),
+            top: hover.y + 12,
+            transform: tipOnRight ? "translateX(-100%)" : "none",
+          }}
+        >
+          <div className="mb-1 flex items-center gap-2">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-sm"
+              style={{ background: LAYER_COLOR[hover.lane.layer] }}
+            />
+            <span className="font-semibold text-gray-900">{hover.lane.label}</span>
+          </div>
+          <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
+            <span>{LAYER_LABEL[hover.lane.layer]}</span>
+            {hover.lane.layer === "event" && hover.lane.category && (
+              <span>{hover.lane.category}</span>
+            )}
+            {hover.lane.layer === "event" && (
+              <span title={`重要度 ${hover.lane.importance}/5`}>
+                {"★".repeat(hover.lane.importance)}
+                <span className="text-gray-300">{"★".repeat(5 - hover.lane.importance)}</span>
+              </span>
+            )}
+          </div>
+          <div className="mb-1 font-medium text-gray-700">
+            {hover.lane.start === hover.lane.end
+              ? formatYear(hover.lane.start, calendar, hover.lane.approximate)
+              : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${
+                  hover.lane.open ? "現在" : formatYear(hover.lane.end, calendar)
+                }`}
+            <span className="ml-1 text-gray-400">（{calendar.name}）</span>
+          </div>
+          {hover.lane.description && (
+            <p className="text-gray-600">{hover.lane.description}</p>
+          )}
+        </div>
+      )}
 
       {/* 凡例 */}
       <div className="mt-3 flex gap-4 text-xs text-gray-600">
