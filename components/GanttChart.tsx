@@ -102,7 +102,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const W = Math.max(300, cw || 900);
   const isMobile = W < 480;
   const GUTTER = isMobile ? 108 : 200;
-  const RIGHT_PAD = isMobile ? 10 : 24;
+  const RIGHT_PAD = isMobile ? 30 : 46; // 存命の「→現在」ラベル分の余白を確保
   const CHART_W = Math.max(140, W - GUTTER - RIGHT_PAD);
   const totalW = GUTTER + CHART_W + RIGHT_PAD;
   const labelChars = isMobile ? 7 : 15;
