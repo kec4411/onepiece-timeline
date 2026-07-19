@@ -37,6 +37,13 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 8, organization_id: 2, role: "二番隊隊長", sort_order: 0 },
   { character_id: 9, organization_id: 4, role: "戦闘員", sort_order: 0 },
   { character_id: 10, organization_id: 4, role: "船長", sort_order: 0 },
+  { character_id: 11, organization_id: 4, role: "航海士", sort_order: 0 },
+  { character_id: 12, organization_id: 4, role: "狙撃手", sort_order: 0 },
+  { character_id: 13, organization_id: 4, role: "コック", sort_order: 0 },
+  { character_id: 14, organization_id: 4, role: "船医", sort_order: 0 },
+  { character_id: 15, organization_id: 4, role: "船大工", sort_order: 0 },
+  { character_id: 16, organization_id: 4, role: "音楽家", sort_order: 0 },
+  { character_id: 17, organization_id: 4, role: "操舵手", sort_order: 0 },
 ];
 
 // キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
@@ -52,6 +59,25 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 10, event_id: 25, sort_order: 1 },
   { character_id: 10, event_id: 26, sort_order: 2 },
   { character_id: 10, event_id: 27, sort_order: 3 },
+  // 麦わらの一味 各メンバー（events 28..44）。ロビンは既存のオハラ事件(9)も再利用
+  { character_id: 9, event_id: 29, sort_order: 0 },
+  { character_id: 9, event_id: 28, sort_order: 1 },
+  { character_id: 11, event_id: 31, sort_order: 0 },
+  { character_id: 11, event_id: 30, sort_order: 1 },
+  { character_id: 12, event_id: 32, sort_order: 0 },
+  { character_id: 12, event_id: 33, sort_order: 1 },
+  { character_id: 13, event_id: 35, sort_order: 0 },
+  { character_id: 13, event_id: 34, sort_order: 1 },
+  { character_id: 14, event_id: 37, sort_order: 0 },
+  { character_id: 14, event_id: 36, sort_order: 1 },
+  { character_id: 7, event_id: 9, sort_order: 0 },
+  { character_id: 7, event_id: 38, sort_order: 1 },
+  { character_id: 15, event_id: 40, sort_order: 0 },
+  { character_id: 15, event_id: 39, sort_order: 1 },
+  { character_id: 16, event_id: 42, sort_order: 0 },
+  { character_id: 16, event_id: 41, sort_order: 1 },
+  { character_id: 17, event_id: 44, sort_order: 0 },
+  { character_id: 17, event_id: 43, sort_order: 1 },
 ];
 
 export const seedCharacters: Character[] = [
@@ -65,6 +91,13 @@ export const seedCharacters: Character[] = [
   { id: 8, name: "ポートガス・D・エース", epithet: "火拳のエース", birth_year: 1502, death_year: 1522, is_approximate: false, image_url: null, notes: "ロジャーの息子。白ひげ海賊団二番隊隊長。享年20。" },
   { id: 9, name: "ロロノア・ゾロ", epithet: "海賊狩り", birth_year: 1503, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味剣士。世界一の大剣豪を目指す。" },
   { id: 10, name: "モンキー・D・ルフィ", epithet: "麦わらのルフィ", birth_year: 1505, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味船長。物語の主人公。" },
+  { id: 11, name: "ナミ", epithet: "泥棒猫", birth_year: 1504, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味航海士。天候を操る。" },
+  { id: 12, name: "ウソップ", epithet: "そげキング", birth_year: 1505, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味狙撃手。臆病だが頼れる男。" },
+  { id: 13, name: "サンジ", epithet: "黒足", birth_year: 1503, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味コック。全ての海の食材を求める。" },
+  { id: 14, name: "トニートニー・チョッパー", epithet: "わたあめ大好き", birth_year: 1507, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味船医。人の心を持つトナカイ。" },
+  { id: 15, name: "フランキー", epithet: "鉄人", birth_year: 1488, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味船大工。サニー号を造ったサイボーグ。" },
+  { id: 16, name: "ブルック", epithet: "ソウルキング", birth_year: 1434, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味音楽家。ヨミヨミの実で蘇った骸骨剣士。" },
+  { id: 17, name: "ジンベエ", epithet: "海侠", birth_year: 1478, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味操舵手。元王下七武海の魚人。" },
 ];
 
 export const seedEventCategories: EventCategory[] = [
@@ -104,4 +137,22 @@ export const seedEvents: EventRow[] = [
   { id: 25, name: "東の海を出航（冒険の始まり）", description: "17歳、海賊王を目指して航海へ。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
   { id: 26, name: "頂上戦争でエースを失う", description: "マリンフォードで兄エースを失う。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
   { id: 27, name: "2年の修行を経て新世界へ", description: "再集結し、後半の海へ乗り出す。", start_year: 1524, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  // 麦わらの一味 各メンバーのイベント（id 28..44）
+  { id: 28, name: "ゾロ、一味に加わる", description: "ルフィに勧誘され海賊狩りが仲間に。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 29, name: "くいなとの約束", description: "世界一の大剣豪になる誓いを立てる。", start_year: 1512, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 30, name: "ナミ、一味に加わる", description: "アーロンの支配から解放され航海士に。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 31, name: "ベルメールの死", description: "義母ベルメールを失い、村を守る道を選ぶ。", start_year: 1513, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 32, name: "ウソップ、一味に加わる", description: "カヤと村を守り、海へ出て狙撃手に。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 33, name: "そげキングを名乗る", description: "仲間を救うため覆面のヒーローに変身。", start_year: 1522, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 34, name: "サンジ、一味に加わる", description: "バラティエを離れ、オールブルーを求め航海へ。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 35, name: "ゼフとの日々", description: "海上レストランでゼフに料理と生き方を学ぶ。", start_year: 1513, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 36, name: "チョッパー、一味に加わる", description: "ドラム島を発ち、船医として仲間に。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 37, name: "Dr.ヒルルクの死", description: "恩人ヒルルクを失い、医者を志す。", start_year: 1520, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 38, name: "ロビン、一味に加わる", description: "「生きたい」と願い、仲間に迎えられる。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 39, name: "フランキー、一味に加わる", description: "サニー号を託し、船大工として乗船。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 40, name: "恩人トムの意志を継ぐ", description: "師トムの犠牲を胸に、船造りに生きる。", start_year: 1510, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 41, name: "ブルック、一味に加わる", description: "スリラーバークで影を取り戻し、音楽家に。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 42, name: "仲間との再会の約束", description: "かつての海賊団を失い、ラブーンとの約束を胸に。", start_year: 1474, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 43, name: "ジンベエ、一味に加わる", description: "ワノ国で正式に操舵手として加入。", start_year: 1524, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 44, name: "王下七武海となる", description: "魚人島を守るため世界政府と手を結ぶ。", start_year: 1500, end_year: null, is_approximate: true, category_id: null, importance: 3 },
 ];
