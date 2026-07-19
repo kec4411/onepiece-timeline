@@ -1,8 +1,8 @@
 import TimelineView from "@/components/TimelineView";
 import { getSupabase } from "@/lib/supabase";
 import { getPool } from "@/lib/db";
-import { seedCalendars, seedCharacterOrganizations, seedCharacters, seedEvents, seedOrganizations } from "@/lib/seed";
-import type { Calendar, Character, CharacterOrganization, EventRow, Organization } from "@/types/db";
+import { seedCalendars, seedCharacterOrganizations, seedCharacters, seedEventCategories, seedEvents, seedOrganizations } from "@/lib/seed";
+import type { Calendar, Character, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
 
 // 常に最新を読む（キャッシュしない）。MVP では十分。
 export const dynamic = "force-dynamic";
@@ -30,10 +30,16 @@ function attachOrgs(characters: Character[], orgs: Organization[], links: Charac
   }));
 }
 
+// event_categories を events に結合して category を付与する。
+function attachCategories(events: EventRow[], categories: EventCategory[]): EventRow[] {
+  const byId = new Map(categories.map((c) => [c.id, c]));
+  return events.map((e) => ({ ...e, category: e.category_id != null ? byId.get(e.category_id) ?? null : null }));
+}
+
 const seed: Loaded = {
   calendars: seedCalendars,
   characters: attachOrgs(seedCharacters, seedOrganizations, seedCharacterOrganizations),
-  events: seedEvents,
+  events: attachCategories(seedEvents, seedEventCategories),
   source: "seed",
 };
 
@@ -43,17 +49,18 @@ async function loadData(): Promise<Loaded> {
   const pool = getPool();
   if (pool) {
     try {
-      const [cal, chars, evs, orgs, links] = await Promise.all([
+      const [cal, chars, evs, cats, orgs, links] = await Promise.all([
         pool.query("select * from calendars order by id"),
         pool.query("select * from characters order by birth_year"),
         pool.query("select * from events order by start_year"),
+        pool.query("select * from event_categories order by sort_order"),
         pool.query("select * from organizations order by id"),
         pool.query("select * from character_organizations"),
       ]);
       return {
         calendars: cal.rows as Calendar[],
         characters: attachOrgs(chars.rows as Character[], orgs.rows as Organization[], links.rows as CharacterOrganization[]),
-        events: evs.rows as EventRow[],
+        events: attachCategories(evs.rows as EventRow[], cats.rows as EventCategory[]),
         source: "postgres",
       };
     } catch (e) {
@@ -64,18 +71,19 @@ async function loadData(): Promise<Loaded> {
   // 2) Supabase（本番）
   const supabase = getSupabase();
   if (supabase) {
-    const [cal, chars, evs, orgs, links] = await Promise.all([
+    const [cal, chars, evs, cats, orgs, links] = await Promise.all([
       supabase.from("calendars").select("*").order("id"),
       supabase.from("characters").select("*").order("birth_year"),
       supabase.from("events").select("*").order("start_year"),
+      supabase.from("event_categories").select("*").order("sort_order"),
       supabase.from("organizations").select("*").order("id"),
       supabase.from("character_organizations").select("*"),
     ]);
-    if (!cal.error && !chars.error && !evs.error && !orgs.error && !links.error) {
+    if (!cal.error && !chars.error && !evs.error && !cats.error && !orgs.error && !links.error) {
       return {
         calendars: cal.data as Calendar[],
         characters: attachOrgs(chars.data as Character[], orgs.data as Organization[], links.data as CharacterOrganization[]),
-        events: evs.data as EventRow[],
+        events: attachCategories(evs.data as EventRow[], cats.data as EventCategory[]),
         source: "supabase",
       };
     }

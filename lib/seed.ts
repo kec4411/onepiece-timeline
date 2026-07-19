@@ -1,4 +1,4 @@
-import type { Calendar, Character, CharacterOrganization, EventRow, Organization } from "@/types/db";
+import type { Calendar, Character, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
 
 // ローカル・フォールバック用データ（Supabase 未接続時に表示）。
 // supabase/seed.sql と同じ内容。ONE PIECE 作中年代（最新章まで／ネタバレ含む）。
@@ -52,22 +52,30 @@ export const seedCharacters: Character[] = [
   { id: 10, name: "モンキー・D・ルフィ", epithet: "麦わらのルフィ", birth_year: 1505, death_year: null, is_approximate: false, image_url: null, notes: "麦わらの一味船長。物語の主人公。" },
 ];
 
+export const seedEventCategories: EventCategory[] = [
+  { id: 1, name: "時代", icon: "⏳", color: "#6b7280", sort_order: 1 },
+  { id: 2, name: "政治", icon: "🏛️", color: "#0ea5e9", sort_order: 2 },
+  { id: 3, name: "事件", icon: "⚡", color: "#ef4444", sort_order: 3 },
+  { id: 4, name: "戦争", icon: "⚔️", color: "#b45309", sort_order: 4 },
+  { id: 5, name: "冒険", icon: "⛵", color: "#10b981", sort_order: 5 },
+];
+
 export const seedEvents: EventRow[] = [
-  { id: 1, name: "空白の100年", description: "世界政府に歴史から抹消された謎の100年間。", start_year: 624, end_year: 724, is_approximate: false, category: "時代", importance: 5 },
-  { id: 2, name: "巨大な王国の滅亡", description: "20の王国連合に敗れ滅ぼされた古代の超文明国家。", start_year: 724, end_year: null, is_approximate: true, category: "戦争", importance: 5 },
-  { id: 3, name: "世界政府の成立", description: "連合の勝利後、20の王国が結束して創設。", start_year: 724, end_year: null, is_approximate: false, category: "政治", importance: 5 },
-  { id: 4, name: "ジョイボーイの敗北", description: "最初の海賊ジョイボーイが敗れ、後世への約束を残した。", start_year: 724, end_year: null, is_approximate: true, category: "事件", importance: 4 },
-  { id: 5, name: "ワノ国の鎖国", description: "光月家がポーネグリフを守るため国境を閉ざした。", start_year: 724, end_year: null, is_approximate: true, category: "政治", importance: 3 },
-  { id: 6, name: "ゴッドバレー事件", description: "ロックス海賊団が壊滅し、ロジャーとガープが共闘。", start_year: 1486, end_year: null, is_approximate: false, category: "事件", importance: 5 },
-  { id: 7, name: "ロジャー、ラフテル到達・海賊王に", description: "偉大なる航路を制覇し最後の島ラフテルへ到達。", start_year: 1498, end_year: null, is_approximate: true, category: "冒険", importance: 5 },
-  { id: 8, name: "ロジャー処刑・大海賊時代の幕開け", description: "最期の言葉が世界を大海賊時代へと導いた。", start_year: 1500, end_year: null, is_approximate: false, category: "事件", importance: 5 },
-  { id: 9, name: "オハラ事件（バスターコール）", description: "オハラの学者が虐殺され、ニコ・ロビンが逃亡者に。", start_year: 1502, end_year: null, is_approximate: false, category: "事件", importance: 5 },
-  { id: 10, name: "おでん処刑・ワノ国掌握", description: "光月おでんが処刑され、カイドウとオロチが支配。", start_year: 1504, end_year: null, is_approximate: false, category: "事件", importance: 4 },
-  { id: 11, name: "シャンクス、麦わら帽子を託す", description: "フーシャ村を発つ際、幼いルフィに帽子を預けた。", start_year: 1512, end_year: null, is_approximate: true, category: "冒険", importance: 3 },
-  { id: 12, name: "ルフィ、海へ出る（物語の始まり）", description: "海賊王を目指してルフィが航海へ。物語の起点。", start_year: 1522, end_year: null, is_approximate: true, category: "冒険", importance: 4 },
-  { id: 13, name: "頂上戦争（マリンフォード）", description: "エースと白ひげが死亡した海軍と白ひげの全面戦争。", start_year: 1522, end_year: null, is_approximate: false, category: "戦争", importance: 5 },
-  { id: 14, name: "2年間の修行（時間跳躍）", description: "麦わらの一味が各地で2年間の修行を行った空白期間。", start_year: 1522, end_year: 1524, is_approximate: false, category: "時代", importance: 3 },
-  { id: 15, name: "世界会議（レヴェリー）", description: "加盟国の王が集う会議。水面下で政治が動いた。", start_year: 1523, end_year: null, is_approximate: true, category: "政治", importance: 3 },
-  { id: 16, name: "ワノ国編・カイドウ&オロチ打倒", description: "光月家と同盟がカイドウらを倒しワノ国を解放。", start_year: 1524, end_year: null, is_approximate: true, category: "戦争", importance: 4 },
-  { id: 17, name: "エッグヘッド事件・最終章の始まり", description: "ベガパンクを巡り五老星が動き、最終章が本格化。", start_year: 1524, end_year: null, is_approximate: true, category: "事件", importance: 4 },
+  { id: 1, name: "空白の100年", description: "世界政府に歴史から抹消された謎の100年間。", start_year: 624, end_year: 724, is_approximate: false, category_id: 1, importance: 5 },
+  { id: 2, name: "巨大な王国の滅亡", description: "20の王国連合に敗れ滅ぼされた古代の超文明国家。", start_year: 724, end_year: null, is_approximate: true, category_id: 4, importance: 5 },
+  { id: 3, name: "世界政府の成立", description: "連合の勝利後、20の王国が結束して創設。", start_year: 724, end_year: null, is_approximate: false, category_id: 2, importance: 5 },
+  { id: 4, name: "ジョイボーイの敗北", description: "最初の海賊ジョイボーイが敗れ、後世への約束を残した。", start_year: 724, end_year: null, is_approximate: true, category_id: 3, importance: 4 },
+  { id: 5, name: "ワノ国の鎖国", description: "光月家がポーネグリフを守るため国境を閉ざした。", start_year: 724, end_year: null, is_approximate: true, category_id: 2, importance: 3 },
+  { id: 6, name: "ゴッドバレー事件", description: "ロックス海賊団が壊滅し、ロジャーとガープが共闘。", start_year: 1486, end_year: null, is_approximate: false, category_id: 3, importance: 5 },
+  { id: 7, name: "ロジャー、ラフテル到達・海賊王に", description: "偉大なる航路を制覇し最後の島ラフテルへ到達。", start_year: 1498, end_year: null, is_approximate: true, category_id: 5, importance: 5 },
+  { id: 8, name: "ロジャー処刑・大海賊時代の幕開け", description: "最期の言葉が世界を大海賊時代へと導いた。", start_year: 1500, end_year: null, is_approximate: false, category_id: 3, importance: 5 },
+  { id: 9, name: "オハラ事件（バスターコール）", description: "オハラの学者が虐殺され、ニコ・ロビンが逃亡者に。", start_year: 1502, end_year: null, is_approximate: false, category_id: 3, importance: 5 },
+  { id: 10, name: "おでん処刑・ワノ国掌握", description: "光月おでんが処刑され、カイドウとオロチが支配。", start_year: 1504, end_year: null, is_approximate: false, category_id: 3, importance: 4 },
+  { id: 11, name: "シャンクス、麦わら帽子を託す", description: "フーシャ村を発つ際、幼いルフィに帽子を預けた。", start_year: 1512, end_year: null, is_approximate: true, category_id: 5, importance: 3 },
+  { id: 12, name: "ルフィ、海へ出る（物語の始まり）", description: "海賊王を目指してルフィが航海へ。物語の起点。", start_year: 1522, end_year: null, is_approximate: true, category_id: 5, importance: 4 },
+  { id: 13, name: "頂上戦争（マリンフォード）", description: "エースと白ひげが死亡した海軍と白ひげの全面戦争。", start_year: 1522, end_year: null, is_approximate: false, category_id: 4, importance: 5 },
+  { id: 14, name: "2年間の修行（時間跳躍）", description: "麦わらの一味が各地で2年間の修行を行った空白期間。", start_year: 1522, end_year: 1524, is_approximate: false, category_id: 1, importance: 3 },
+  { id: 15, name: "世界会議（レヴェリー）", description: "加盟国の王が集う会議。水面下で政治が動いた。", start_year: 1523, end_year: null, is_approximate: true, category_id: 2, importance: 3 },
+  { id: 16, name: "ワノ国編・カイドウ&オロチ打倒", description: "光月家と同盟がカイドウらを倒しワノ国を解放。", start_year: 1524, end_year: null, is_approximate: true, category_id: 4, importance: 4 },
+  { id: 17, name: "エッグヘッド事件・最終章の始まり", description: "ベガパンクを巡り五老星が動き、最終章が本格化。", start_year: 1524, end_year: null, is_approximate: true, category_id: 3, importance: 4 },
 ];

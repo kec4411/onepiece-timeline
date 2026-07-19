@@ -19,11 +19,14 @@ export default function TimelineView({ calendars, characters, events }: Props) {
   const [showCharacters, setShowCharacters] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
 
-  // 出来事カテゴリ（データから抽出）。未選択セットで「除外」を管理し、初期は全表示。
-  const categories = useMemo(
-    () => Array.from(new Set(events.map((e) => e.category).filter((c): c is string => !!c))).sort(),
-    [events],
-  );
+  // 出来事カテゴリ（結合済み category から抽出。名前＋アイコン）。未選択セットで「除外」を管理。
+  const categories = useMemo(() => {
+    const seen = new Map<string, string | null>();
+    for (const e of events) {
+      if (e.category && !seen.has(e.category.name)) seen.set(e.category.name, e.category.icon);
+    }
+    return [...seen.entries()].map(([name, icon]) => ({ name, icon }));
+  }, [events]);
   const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
 
   const toggleCategory = (c: string) =>
@@ -62,7 +65,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
       })
     : [];
   const filteredEvents = showEvents
-    ? events.filter((e) => !e.category || !hiddenCategories.has(e.category))
+    ? events.filter((e) => !e.category || !hiddenCategories.has(e.category.name))
     : [];
 
   return (
@@ -114,8 +117,8 @@ export default function TimelineView({ calendars, characters, events }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-sm text-gray-500">カテゴリ</span>
             {categories.map((c) => (
-              <Chip key={c} active={!hiddenCategories.has(c)} onClick={() => toggleCategory(c)}>
-                {c}
+              <Chip key={c.name} active={!hiddenCategories.has(c.name)} onClick={() => toggleCategory(c.name)}>
+                {c.icon ? `${c.icon} ${c.name}` : c.name}
               </Chip>
             ))}
           </div>

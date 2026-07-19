@@ -9,12 +9,20 @@
 --   として格納しています。★相対的な間隔は原作準拠で正確／絶対数値は便宜設定★。
 --   出典: One Piece Wiki（Void Century, God Valley Incident, Gol D. Roger, Kouzuki Oden 他）。
 
-truncate table calendars, characters, events, organizations, character_organizations restart identity cascade;
+truncate table calendars, characters, events, event_categories, organizations, character_organizations restart identity cascade;
 
 -- 暦（表示ラベル。海円暦=基準、天暦=表示切替のサンプル）
 insert into calendars (name, description, offset_from_canonical) values
   ('海円暦', '本アプリの基準暦。現在を便宜上1524年に設定（相対年は原作準拠）。', 0),
   ('天暦',   'サンプルの別暦（非公式）。表示切替の例。', -1000);
+
+-- 出来事カテゴリ（id は挿入順 1..5。icon=絵文字）
+insert into event_categories (name, icon, color, sort_order) values
+  ('時代', '⏳',  '#6b7280', 1),
+  ('政治', '🏛️', '#0ea5e9', 2),
+  ('事件', '⚡',  '#ef4444', 3),
+  ('戦争', '⚔️', '#b45309', 4),
+  ('冒険', '⛵',  '#10b981', 5);
 
 -- キャラクターの生涯（birth/death = canonical年、存命は death を null）
 insert into characters (name, epithet, birth_year, death_year, is_approximate, notes) values
@@ -29,25 +37,25 @@ insert into characters (name, epithet, birth_year, death_year, is_approximate, n
   ('ロロノア・ゾロ',        '海賊狩り',      1503, null, false, '麦わらの一味剣士。世界一の大剣豪を目指す。'),
   ('モンキー・D・ルフィ',    '麦わらのルフィ',  1505, null, false, '麦わらの一味船長。物語の主人公。');
 
--- 出来事（範囲は start/end、点イベントは end を null）
-insert into events (name, description, start_year, end_year, is_approximate, category, importance) values
-  ('空白の100年',                    '世界政府に歴史から抹消された謎の100年間。',              624, 724,  false, '時代', 5),
-  ('巨大な王国の滅亡',                '20の王国連合に敗れ滅ぼされた古代の超文明国家。',          724, null, true,  '戦争', 5),
-  ('世界政府の成立',                  '連合の勝利後、20の王国が結束して創設。',                724, null, false, '政治', 5),
-  ('ジョイボーイの敗北',              '最初の海賊ジョイボーイが敗れ、後世への約束を残した。',    724, null, true,  '事件', 4),
-  ('ワノ国の鎖国',                    '光月家がポーネグリフを守るため国境を閉ざした。',          724, null, true,  '政治', 3),
-  ('ゴッドバレー事件',                'ロックス海賊団が壊滅し、ロジャーとガープが共闘。',        1486, null, false, '事件', 5),
-  ('ロジャー、ラフテル到達・海賊王に', '偉大なる航路を制覇し最後の島ラフテルへ到達。',            1498, null, true,  '冒険', 5),
-  ('ロジャー処刑・大海賊時代の幕開け', '最期の言葉が世界を大海賊時代へと導いた。',                1500, null, false, '事件', 5),
-  ('オハラ事件（バスターコール）',    'オハラの学者が虐殺され、ニコ・ロビンが逃亡者に。',        1502, null, false, '事件', 5),
-  ('おでん処刑・ワノ国掌握',          '光月おでんが処刑され、カイドウとオロチが支配。',          1504, null, false, '事件', 4),
-  ('シャンクス、麦わら帽子を託す',    'フーシャ村を発つ際、幼いルフィに帽子を預けた。',          1512, null, true,  '冒険', 3),
-  ('ルフィ、海へ出る（物語の始まり）', '海賊王を目指してルフィが航海へ。物語の起点。',            1522, null, true,  '冒険', 4),
-  ('頂上戦争（マリンフォード）',      'エースと白ひげが死亡した海軍と白ひげの全面戦争。',        1522, null, false, '戦争', 5),
-  ('2年間の修行（時間跳躍）',         '麦わらの一味が各地で2年間の修行を行った空白期間。',        1522, 1524, false, '時代', 3),
-  ('世界会議（レヴェリー）',          '加盟国の王が集う会議。水面下で政治が動いた。',            1523, null, true,  '政治', 3),
-  ('ワノ国編・カイドウ&オロチ打倒',   '光月家と同盟がカイドウらを倒しワノ国を解放。',            1524, null, true,  '戦争', 4),
-  ('エッグヘッド事件・最終章の始まり', 'ベガパンクを巡り五老星が動き、最終章が本格化。',          1524, null, true,  '事件', 4);
+-- 出来事（範囲は start/end、点イベントは end を null。category_id は event_categories の id）
+insert into events (name, description, start_year, end_year, is_approximate, category_id, importance) values
+  ('空白の100年',                    '世界政府に歴史から抹消された謎の100年間。',              624, 724,  false, 1, 5),
+  ('巨大な王国の滅亡',                '20の王国連合に敗れ滅ぼされた古代の超文明国家。',          724, null, true,  4, 5),
+  ('世界政府の成立',                  '連合の勝利後、20の王国が結束して創設。',                724, null, false, 2, 5),
+  ('ジョイボーイの敗北',              '最初の海賊ジョイボーイが敗れ、後世への約束を残した。',    724, null, true,  3, 4),
+  ('ワノ国の鎖国',                    '光月家がポーネグリフを守るため国境を閉ざした。',          724, null, true,  2, 3),
+  ('ゴッドバレー事件',                'ロックス海賊団が壊滅し、ロジャーとガープが共闘。',        1486, null, false, 3, 5),
+  ('ロジャー、ラフテル到達・海賊王に', '偉大なる航路を制覇し最後の島ラフテルへ到達。',            1498, null, true,  5, 5),
+  ('ロジャー処刑・大海賊時代の幕開け', '最期の言葉が世界を大海賊時代へと導いた。',                1500, null, false, 3, 5),
+  ('オハラ事件（バスターコール）',    'オハラの学者が虐殺され、ニコ・ロビンが逃亡者に。',        1502, null, false, 3, 5),
+  ('おでん処刑・ワノ国掌握',          '光月おでんが処刑され、カイドウとオロチが支配。',          1504, null, false, 3, 4),
+  ('シャンクス、麦わら帽子を託す',    'フーシャ村を発つ際、幼いルフィに帽子を預けた。',          1512, null, true,  5, 3),
+  ('ルフィ、海へ出る（物語の始まり）', '海賊王を目指してルフィが航海へ。物語の起点。',            1522, null, true,  5, 4),
+  ('頂上戦争（マリンフォード）',      'エースと白ひげが死亡した海軍と白ひげの全面戦争。',        1522, null, false, 4, 5),
+  ('2年間の修行（時間跳躍）',         '麦わらの一味が各地で2年間の修行を行った空白期間。',        1522, 1524, false, 1, 3),
+  ('世界会議（レヴェリー）',          '加盟国の王が集う会議。水面下で政治が動いた。',            1523, null, true,  2, 3),
+  ('ワノ国編・カイドウ&オロチ打倒',   '光月家と同盟がカイドウらを倒しワノ国を解放。',            1524, null, true,  4, 4),
+  ('エッグヘッド事件・最終章の始まり', 'ベガパンクを巡り五老星が動き、最終章が本格化。',          1524, null, true,  3, 4);
 
 -- 組織（id は挿入順: 1..7）
 insert into organizations (name, kind, description, color) values

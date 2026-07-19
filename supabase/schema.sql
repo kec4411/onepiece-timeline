@@ -23,6 +23,15 @@ create table if not exists characters (
   notes          text
 );
 
+-- 出来事のカテゴリ（アイコン=絵文字 / 色）
+create table if not exists event_categories (
+  id         bigint generated always as identity primary key,
+  name       text not null,
+  icon       text,        -- 絵文字（例: ⚔️ / ⚡ / ⛵）
+  color      text,
+  sort_order integer not null default 0
+);
+
 -- 出来事（範囲は start/end、点イベントは end_year を null に）
 create table if not exists events (
   id             bigint generated always as identity primary key,
@@ -31,9 +40,13 @@ create table if not exists events (
   start_year     integer not null,
   end_year       integer,
   is_approximate boolean not null default false,
-  category       text,
+  category_id    bigint references event_categories(id),
   importance     smallint not null default 3 check (importance between 1 and 5)
 );
+
+-- 既存DB（category text 時代）からの移行: category_id を追加し、旧 category 列を削除
+alter table events add column if not exists category_id bigint references event_categories(id);
+alter table events drop column if exists category;
 
 -- 組織（海賊団・海軍・勢力など）
 create table if not exists organizations (
@@ -57,18 +70,21 @@ create table if not exists character_organizations (
 alter table calendars               enable row level security;
 alter table characters              enable row level security;
 alter table events                  enable row level security;
+alter table event_categories        enable row level security;
 alter table organizations           enable row level security;
 alter table character_organizations enable row level security;
 
 drop policy if exists "public read calendars"               on calendars;
 drop policy if exists "public read characters"              on characters;
 drop policy if exists "public read events"                  on events;
+drop policy if exists "public read event_categories"        on event_categories;
 drop policy if exists "public read organizations"           on organizations;
 drop policy if exists "public read character_organizations" on character_organizations;
 
 create policy "public read calendars"               on calendars               for select using (true);
 create policy "public read characters"              on characters              for select using (true);
 create policy "public read events"                  on events                  for select using (true);
+create policy "public read event_categories"        on event_categories        for select using (true);
 create policy "public read organizations"           on organizations           for select using (true);
 create policy "public read character_organizations" on character_organizations for select using (true);
 

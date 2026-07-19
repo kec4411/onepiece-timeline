@@ -52,16 +52,26 @@ export type CharacterOrg = {
   color: string | null;
 };
 
+export type EventCategory = {
+  id: number;
+  name: string;
+  /** 絵文字アイコン（例: ⚔️ / ⚡ / ⛵） */
+  icon: string | null;
+  color: string | null;
+  sort_order: number;
+};
+
 export type EventRow = {
   id: number;
   name: string;
   description: string | null;
   start_year: number;
-  /** null の場合は点イベント（start_year のみ） */
+  /** null の場合は点イベント（start_year のみ）→ カテゴリのアイコンで表示 */
   end_year: number | null;
   is_approximate: boolean;
-  /** 例: 事件 / 戦争 / 時代 / 冒険 */
-  category: string | null;
+  category_id: number | null;
   /** 1（低）〜5（高）。並び順や強調に利用 */
   importance: number;
+  /** 取得時に event_categories を結合して付与（DB列ではない派生データ） */
+  category?: EventCategory | null;
 };

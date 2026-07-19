@@ -27,6 +27,8 @@ type Lane = {
   importance: number;
   approximate: boolean;
   category: string | null;
+  /** カテゴリの絵文字アイコン（点イベントの描画に使用） */
+  icon?: string | null;
   description: string | null;
   orgs?: CharacterOrg[];
 };
@@ -93,7 +95,8 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
 
   const evLanes: Lane[] = events.map((ev) => ({
     key: `e-${ev.id}`, label: ev.name, start: ev.start_year, end: ev.end_year ?? ev.start_year, open: false,
-    layer: "event", importance: ev.importance, approximate: ev.is_approximate, category: ev.category, description: ev.description,
+    layer: "event", importance: ev.importance, approximate: ev.is_approximate,
+    category: ev.category?.name ?? null, icon: ev.category?.icon ?? null, description: ev.description,
   }));
 
   // キャラ領域の視覚行を構築（グループ化時は主所属ごとに見出し行を挿入）
@@ -400,7 +403,17 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
             const active = hover?.lane.key === ev.key;
             const op = active ? 1 : 0.4 + ev.importance * 0.11;
             if (isPoint) {
-              const s = 10 + ev.importance * 2; // 重要度でダイヤサイズ
+              // 点イベント（end_year=null）はカテゴリの絵文字アイコンで表示（無ければダイヤ）
+              if (ev.icon) {
+                const fs = 14 + ev.importance * 2; // 重要度でアイコンサイズ
+                return (
+                  <text key={`ev-${ev.key}`} x={x1} y={bandY} textAnchor="middle" dominantBaseline="central"
+                    fontSize={active ? fs + 3 : fs} opacity={active ? 1 : 0.55 + ev.importance * 0.09} style={{ pointerEvents: "none" }}>
+                    {ev.icon}
+                  </text>
+                );
+              }
+              const s = 10 + ev.importance * 2;
               return (
                 <g key={`ev-${ev.key}`} transform={`translate(${x1}, ${bandY})`} style={{ pointerEvents: "none" }}>
                   <rect x={-s / 2} y={-s / 2} width={s} height={s} transform="rotate(45)" fill={LAYER_COLOR.event} opacity={op}
@@ -468,7 +481,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           </div>
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
             <span>{LAYER_LABEL[hover.lane.layer]}</span>
-            {hover.lane.layer === "event" && hover.lane.category && <span>{hover.lane.category}</span>}
+            {hover.lane.layer === "event" && hover.lane.category && <span>{hover.lane.icon ? `${hover.lane.icon} ` : ""}{hover.lane.category}</span>}
             {hover.lane.layer === "event" && (
               <span title={`重要度 ${hover.lane.importance}/5`}>
                 {"★".repeat(hover.lane.importance)}
@@ -506,7 +519,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ background: LAYER_COLOR.event }} />
-          出来事（最上段の帯・濃さ/大きさ = 重要度）
+          出来事（最上段。点=カテゴリのアイコン / 範囲=バー）
         </span>
       </div>
     </div>
