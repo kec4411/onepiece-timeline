@@ -40,7 +40,7 @@ export default async function Home() {
   const { calendars, characters, events, source } = await loadData();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">ONE PIECE 年表</h1>
         <p className="mt-1 text-sm text-gray-500">
@@ -56,7 +56,7 @@ export default async function Home() {
         </div>
       )}
 
-      <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
         <TimelineView calendars={calendars} characters={characters} events={events} />
       </section>
 
