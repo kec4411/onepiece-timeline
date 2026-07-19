@@ -44,6 +44,18 @@ export default function TimelineView({ calendars, characters, events }: Props) {
   const [search, setSearch] = useState("");
   const q = search.trim().toLowerCase();
 
+  // ピン留め（検索文字を変えても表示し続ける）: キャラ個別 と 組織単位
+  const [pinnedChars, setPinnedChars] = useState<Set<number>>(new Set());
+  const [pinnedOrgs, setPinnedOrgs] = useState<Set<string>>(new Set());
+  const togglePinChar = (id: number) =>
+    setPinnedChars((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const togglePinOrg = (name: string) =>
+    setPinnedOrgs((prev) => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
+  const orgColor = (name: string) => {
+    for (const c of characters) { const o = (c.orgs ?? []).find((o) => o.name === name); if (o) return o.color; }
+    return null;
+  };
+
   // キャラの表示順（id 配列。null=既定＝生年順）。名前ドラッグで更新。
   const [charOrder, setCharOrder] = useState<number[] | null>(null);
   const orderedCharacters = useMemo(() => {
@@ -65,17 +77,18 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     });
   };
 
-  // 検索適用（キャラ名の各表記 ＋ 所属組織名/役職 のいずれかに部分一致）
-  const filteredCharacters = showCharacters
-    ? orderedCharacters.filter((c) => {
-        if (!q) return true;
-        const hay = [c.name, c.full_name, c.hidden_name, c.persona, c.epithet, ...(c.orgs ?? []).flatMap((o) => [o.name, o.role])]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        return hay.includes(q);
-      })
-    : [];
+  // 検索・ピン適用（ピン済み or 検索一致 のキャラを表示。ピンは検索文字を変えても残る）
+  const matchesSearch = (c: Character) => {
+    if (!q) return true;
+    const hay = [c.name, c.full_name, c.hidden_name, c.persona, c.epithet, ...(c.orgs ?? []).flatMap((o) => [o.name, o.role])]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return hay.includes(q);
+  };
+  const isPinned = (c: Character) => pinnedChars.has(c.id) || (c.orgs ?? []).some((o) => pinnedOrgs.has(o.name));
+  const filteredCharacters = showCharacters ? orderedCharacters.filter((c) => isPinned(c) || matchesSearch(c)) : [];
+  const pinnedCharList = characters.filter((c) => pinnedChars.has(c.id));
   const filteredEvents = showEvents
     ? events.filter((e) => !e.category || !hiddenCategories.has(e.category.name))
     : [];
@@ -119,6 +132,36 @@ export default function TimelineView({ calendars, characters, events }: Props) {
             {groupByOrg ? "✓ " : ""}組織でグループ化
           </button>
         </div>
+
+        {/* ピン留め済み（× で解除。検索を変えても表示され続ける） */}
+        {(pinnedCharList.length > 0 || pinnedOrgs.size > 0) && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="w-16 text-sm text-gray-500">ピン</span>
+            {[...pinnedOrgs].map((name) => (
+              <button
+                key={`o-${name}`}
+                type="button"
+                onClick={() => togglePinOrg(name)}
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-sm text-blue-800"
+              >
+                <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: orgColor(name) ?? "#9ca3af" }} />
+                {name}
+                <span className="text-blue-400">×</span>
+              </button>
+            ))}
+            {pinnedCharList.map((c) => (
+              <button
+                key={`c-${c.id}`}
+                type="button"
+                onClick={() => togglePinChar(c.id)}
+                className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-sm text-blue-800"
+              >
+                {c.name}
+                <span className="text-blue-400">×</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* 暦切替 */}
         {calendars.length > 1 && (
@@ -179,6 +222,10 @@ export default function TimelineView({ calendars, characters, events }: Props) {
         calendarId={selected?.id}
         groupByOrg={groupByOrg}
         onReorderChar={handleReorder}
+        pinnedChars={pinnedChars}
+        pinnedOrgs={pinnedOrgs}
+        onTogglePinChar={togglePinChar}
+        onTogglePinOrg={togglePinOrg}
       />
     </div>
   );

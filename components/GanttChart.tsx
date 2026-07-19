@@ -15,6 +15,11 @@ type Props = {
   groupByOrg?: boolean;
   /** キャラ名ドラッグで並び替え（draggedId を targetId の位置へ移動） */
   onReorderChar?: (draggedId: number, targetId: number) => void;
+  /** ピン留め状態と切替 */
+  pinnedChars?: Set<number>;
+  pinnedOrgs?: Set<string>;
+  onTogglePinChar?: (id: number) => void;
+  onTogglePinOrg?: (name: string) => void;
 };
 
 // キャラ領域の視覚的な行（グループ見出し or キャラのレーン）
@@ -61,15 +66,40 @@ const TAP_SLOP = 8; // これ未満の指の移動はタップ扱い(px)
 const HIT_PX = 16; // 出来事バンドで最寄りイベントを拾う距離(px)
 const MILE_HIT_PX = 10; // キャラ行で節目マーカーを拾う距離(px)
 const MILESTONE_COLOR = "#1f2937"; // 節目マーカー（gray-800）
+const PIN_W = 22; // ガター左のピン留めアイコン領域(px)
+const PIN_COLOR = "#2563eb";
+
+// ピン留めアイコン（ガター左）。中心 (cx,cy) に 14x16 のロケーションピンを描く。
+function PinIcon({ cx, cy, pinned }: { cx: number; cy: number; pinned: boolean }) {
+  return (
+    <g transform={`translate(${cx - 7}, ${cy - 8})`} style={{ pointerEvents: "none" }}>
+      <path
+        d="M7 1 C4.2 1 2 3.2 2 6 C2 9.5 7 15 7 15 C7 15 12 9.5 12 6 C12 3.2 9.8 1 7 1 Z"
+        fill={pinned ? PIN_COLOR : "none"}
+        stroke={pinned ? PIN_COLOR : "#cbd5e1"}
+        strokeWidth={1.3}
+      />
+      <circle cx={7} cy={6} r={1.8} fill={pinned ? "#ffffff" : "none"} stroke={pinned ? "none" : "#cbd5e1"} strokeWidth={1.1} />
+    </g>
+  );
+}
 
 const LAYER_COLOR = { character: "#2563eb", event: "#d97706" } as const;
 const LAYER_LABEL = { character: "キャラ", event: "出来事" } as const;
+
+const EMPTY_NUM_SET: Set<number> = new Set();
+const EMPTY_STR_SET: Set<string> = new Set();
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const dist = (a: Touch, b: Touch) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 
-export default function GanttChart({ calendars, characters, events, calendarId, groupByOrg = false, onReorderChar }: Props) {
+export default function GanttChart({
+  calendars, characters, events, calendarId, groupByOrg = false, onReorderChar,
+  pinnedChars, pinnedOrgs, onTogglePinChar, onTogglePinOrg,
+}: Props) {
+  const pinnedC = pinnedChars ?? EMPTY_NUM_SET;
+  const pinnedO = pinnedOrgs ?? EMPTY_STR_SET;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -285,6 +315,22 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
     if (!rect) return;
     setHover({ lane, x: clientX - rect.left, y: clientY - rect.top });
   };
+  // clientY の視覚行（見出し or キャラレーン）。ピン留めのタップ判定に使う。
+  const rowAt = (clientY: number): VisualRow | null => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    const idx = Math.floor((clientY - rect.top - HEADER_H) / ROW_H) - rowOffset;
+    return charRows[idx] ?? null;
+  };
+  // ガター左のピン領域をタップ/クリックしたら該当のピンを切り替える。
+  const togglePinAt = (clientX: number, clientY: number): boolean => {
+    if (clientX - svgLeft() >= PIN_W) return false;
+    const r = rowAt(clientY);
+    if (!r) return false;
+    if (r.kind === "lane" && r.lane.charId != null) { onTogglePinChar?.(r.lane.charId); return true; }
+    if (r.kind === "header") { onTogglePinOrg?.(r.name); return true; }
+    return false;
+  };
 
   actionsRef.current = {
     onWheel: (e) => {
@@ -323,8 +369,13 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
       g.lastTouch = Date.now();
       if (g.mode === "pan" && !g.moved) {
         e.preventDefault();
-        if (g.lane && hover?.lane.key !== g.lane.key) showTipAt(g.lane, g.startX, g.startY);
-        else setHover(null);
+        if (togglePinAt(g.startX, g.startY)) {
+          setHover(null);
+        } else if (g.lane && hover?.lane.key !== g.lane.key) {
+          showTipAt(g.lane, g.startX, g.startY);
+        } else {
+          setHover(null);
+        }
       }
       if (e.touches.length === 0) g.mode = "none";
     },
@@ -445,12 +496,19 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
         )}
         {charRows.map((r, i) => {
           const y = HEADER_H + (rowOffset + i) * ROW_H;
+          const cy = y + ROW_H / 2;
           if (r.kind === "header") {
+            const orgPinned = pinnedO.has(r.name);
             return (
               <g key={`h-${i}`}>
                 <rect x={0} y={y} width={totalW} height={ROW_H} fill="#f3f4f6" />
                 <rect x={0} y={y} width={3} height={ROW_H} fill={r.color ?? "#9ca3af"} />
-                <text x={12} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fontWeight={700} fill="#374151">{truncate(r.name, labelChars + 4)}</text>
+                {onTogglePinOrg && <PinIcon cx={13} cy={cy} pinned={orgPinned} />}
+                <text x={onTogglePinOrg ? PIN_W + 4 : 12} y={cy + 4} fontSize={isMobile ? 11 : 12} fontWeight={700} fill="#374151">{truncate(r.name, labelChars + 2)}</text>
+                {onTogglePinOrg && (
+                  <rect x={0} y={y} width={PIN_W} height={ROW_H} fill="transparent"
+                    onMouseDown={(e) => { e.stopPropagation(); if (!isSyntheticMouse()) onTogglePinOrg(r.name); }} style={{ cursor: "pointer" }} />
+                )}
               </g>
             );
           }
@@ -458,22 +516,21 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           const active = hover?.lane.key === lane.key;
           const isDragged = reorderId != null && lane.charId === reorderId;
           const canReorder = Boolean(onReorderChar) && lane.charId != null && !isMobile;
-          const labelX = groupByOrg ? 24 : 12;
-          const cy = y + ROW_H / 2;
+          const canPin = Boolean(onTogglePinChar) && lane.charId != null;
+          const charPinned = lane.charId != null && pinnedC.has(lane.charId);
+          const labelX = (canPin ? PIN_W + 2 : 8) + (groupByOrg ? 10 : 0);
           return (
             <g key={`bg-${lane.key}`}>
               <rect x={0} y={y} width={totalW} height={ROW_H} fill={isDragged ? "#e0e7ff" : active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
+              {canPin && <PinIcon cx={11} cy={cy} pinned={charPinned} />}
+              <text x={labelX} y={cy + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 3 : labelChars - 1)}</text>
               {canReorder && (
-                <g fill="#cbd5e1">
-                  <circle cx={groupByOrg ? 16 : 5} cy={cy - 4} r={1} />
-                  <circle cx={groupByOrg ? 16 : 5} cy={cy} r={1} />
-                  <circle cx={groupByOrg ? 16 : 5} cy={cy + 4} r={1} />
-                </g>
-              )}
-              <text x={labelX} y={cy + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 2 : labelChars)}</text>
-              {canReorder && (
-                <rect x={0} y={y} width={GUTTER} height={ROW_H} fill="transparent"
+                <rect x={PIN_W} y={y} width={GUTTER - PIN_W} height={ROW_H} fill="transparent"
                   onMouseDown={(e) => startReorder(lane, e)} style={{ cursor: reorderId != null ? "grabbing" : "grab" }} />
+              )}
+              {canPin && (
+                <rect x={0} y={y} width={PIN_W} height={ROW_H} fill="transparent"
+                  onMouseDown={(e) => { e.stopPropagation(); if (!isSyntheticMouse()) onTogglePinChar!(lane.charId!); }} style={{ cursor: "pointer" }} />
               )}
             </g>
           );
