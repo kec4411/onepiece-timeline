@@ -31,6 +31,7 @@ const HEADER_H = 44;
 const ROW_H = 30;
 const BAR_H = 16;
 const MIN_SPAN = 2;
+const INITIAL_START_YEAR = 1400; // 初期表示の左端（canonical年 = 海円暦1400年。現在まで表示）
 const TAP_SLOP = 8; // これ未満の指の移動はタップ扱い(px)
 const HIT_PX = 16; // 出来事バンドで最寄りイベントを拾う距離(px)
 
@@ -124,8 +125,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     return () => ro.disconnect();
   }, []);
 
+  // 初期表示（およびフィルタ等で domain 変化時）は [1400, 現在] を既定に。
+  // 「全体」ボタンで全期間（空白の100年〜）に戻せる。
   useEffect(() => {
-    setView({ start: domainMin, end: domainMax });
+    const start = Math.min(Math.max(INITIAL_START_YEAR, domainMin), domainMax - MIN_SPAN);
+    setView({ start, end: domainMax });
   }, [domainMin, domainMax]);
 
   const eff: View = view ?? { start: domainMin, end: domainMax };
