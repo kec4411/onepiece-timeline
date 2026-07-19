@@ -398,6 +398,11 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
             </g>
           ))}
 
+          {/* ホバー中イベントの位置を縦に貫くガイド線（色はグリッド線と同じ） */}
+          {hover && hover.lane.layer === "event" && (
+            <line x1={x(hover.lane.start)} y1={HEADER_H - 8} x2={x(hover.lane.start)} y2={totalH} stroke="#e5e7eb" strokeWidth={2} />
+          )}
+
           {/* 出来事バンド: 全イベントを1行に配置（点=ダイヤ/範囲=バー、重要度でサイズ・濃さ） */}
           {hasEventsRow && evLanes.map((ev) => {
             const isPoint = ev.start === ev.end;
