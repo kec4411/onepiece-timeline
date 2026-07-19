@@ -34,8 +34,33 @@ export default function TimelineView({ calendars, characters, events }: Props) {
       return next;
     });
 
-  // フィルタ適用
-  const filteredCharacters = showCharacters ? characters : [];
+  // 組織（各キャラの主所属 orgs[0] から抽出）。グループ化/フィルタの基準。
+  const orgOptions = useMemo(() => {
+    const seen = new Map<string, string | null>();
+    for (const c of characters) {
+      const p = c.orgs?.[0];
+      if (p && !seen.has(p.name)) seen.set(p.name, p.color);
+    }
+    return [...seen.entries()].map(([name, color]) => ({ name, color }));
+  }, [characters]);
+  const [hiddenOrgs, setHiddenOrgs] = useState<Set<string>>(new Set());
+  const [groupByOrg, setGroupByOrg] = useState(false);
+
+  const toggleOrg = (name: string) =>
+    setHiddenOrgs((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+
+  // フィルタ適用（キャラは主所属で絞り込み。主所属が無いキャラは常に表示）
+  const filteredCharacters = showCharacters
+    ? characters.filter((c) => {
+        const p = c.orgs?.[0];
+        return !p || !hiddenOrgs.has(p.name);
+      })
+    : [];
   const filteredEvents = showEvents
     ? events.filter((e) => !e.category || !hiddenCategories.has(e.category))
     : [];
@@ -95,6 +120,29 @@ export default function TimelineView({ calendars, characters, events }: Props) {
             ))}
           </div>
         )}
+
+        {/* 組織フィルタ ＋ グループ化トグル（キャラ表示時のみ） */}
+        {showCharacters && orgOptions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-16 text-sm text-gray-500">組織</span>
+            {orgOptions.map((o) => (
+              <Chip key={o.name} active={!hiddenOrgs.has(o.name)} color={o.color ?? undefined} onClick={() => toggleOrg(o.name)}>
+                {o.name}
+              </Chip>
+            ))}
+            <button
+              type="button"
+              onClick={() => setGroupByOrg((v) => !v)}
+              aria-pressed={groupByOrg}
+              className={
+                "ml-auto rounded-md border px-3 py-1 text-sm transition-colors " +
+                (groupByOrg ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-500 hover:text-gray-800")
+              }
+            >
+              {groupByOrg ? "✓ " : ""}組織でグループ化
+            </button>
+          </div>
+        )}
       </div>
 
       <GanttChart
@@ -102,6 +150,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
         characters={filteredCharacters}
         events={filteredEvents}
         calendarId={selected?.id}
+        groupByOrg={groupByOrg}
       />
     </div>
   );

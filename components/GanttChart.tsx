@@ -10,7 +10,12 @@ type Props = {
   events: EventRow[];
   /** 表示に使う暦の id（未指定なら先頭 = 通常は海円暦） */
   calendarId?: number;
+  /** キャラ行を主所属の組織でグループ化する */
+  groupByOrg?: boolean;
 };
+
+// キャラ領域の視覚的な行（グループ見出し or キャラのレーン）
+type VisualRow = { kind: "header"; name: string; color: string | null } | { kind: "lane"; lane: Lane };
 
 type Lane = {
   key: string;
@@ -43,7 +48,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), h
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const dist = (a: Touch, b: Touch) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 
-export default function GanttChart({ calendars, characters, events, calendarId }: Props) {
+export default function GanttChart({ calendars, characters, events, calendarId, groupByOrg = false }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -91,10 +96,30 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     layer: "event", importance: ev.importance, approximate: ev.is_approximate, category: ev.category, description: ev.description,
   }));
 
+  // キャラ領域の視覚行を構築（グループ化時は主所属ごとに見出し行を挿入）
+  const charRows: VisualRow[] = [];
+  if (groupByOrg) {
+    const groups = new Map<string, { color: string | null; lanes: Lane[]; minStart: number }>();
+    for (const lane of charLanes) {
+      const p = lane.orgs?.[0];
+      const key = p?.name ?? "所属なし";
+      let g = groups.get(key);
+      if (!g) { g = { color: p?.color ?? null, lanes: [], minStart: Infinity }; groups.set(key, g); }
+      g.lanes.push(lane);
+      g.minStart = Math.min(g.minStart, lane.start);
+    }
+    for (const [name, g] of [...groups.entries()].sort((a, b) => a[1].minStart - b[1].minStart)) {
+      charRows.push({ kind: "header", name, color: g.color });
+      for (const lane of g.lanes) charRows.push({ kind: "lane", lane });
+    }
+  } else {
+    for (const lane of charLanes) charRows.push({ kind: "lane", lane });
+  }
+
   const hasEventsRow = evLanes.length > 0;
   const rowOffset = hasEventsRow ? 1 : 0; // 出来事バンドの分だけキャラ行を下げる
-  const rowCount = rowOffset + charLanes.length;
-  const hasData = rowCount > 0;
+  const rowCount = rowOffset + charRows.length;
+  const hasData = rowOffset + charLanes.length > 0;
 
   // ── 年ドメイン（全アイテムから）とレスポンシブ寸法 ─────
   const allYears = [...charLanes, ...evLanes].flatMap((l) => [l.start, l.end]);
@@ -182,7 +207,8 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       return bd <= HIT_PX ? best : null;
     }
     const idx = row - rowOffset;
-    return idx >= 0 && idx < charLanes.length ? charLanes[idx] : null;
+    const r = charRows[idx];
+    return r && r.kind === "lane" ? r.lane : null;
   };
   const showTipAt = (lane: Lane, clientX: number, clientY: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -336,13 +362,23 @@ export default function GanttChart({ calendars, characters, events, calendarId }
             </text>
           </g>
         )}
-        {charLanes.map((lane, i) => {
+        {charRows.map((r, i) => {
           const y = HEADER_H + (rowOffset + i) * ROW_H;
+          if (r.kind === "header") {
+            return (
+              <g key={`h-${i}`}>
+                <rect x={0} y={y} width={totalW} height={ROW_H} fill="#f3f4f6" />
+                <rect x={0} y={y} width={3} height={ROW_H} fill={r.color ?? "#9ca3af"} />
+                <text x={12} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fontWeight={700} fill="#374151">{truncate(r.name, labelChars + 4)}</text>
+              </g>
+            );
+          }
+          const lane = r.lane;
           const active = hover?.lane.key === lane.key;
           return (
             <g key={`bg-${lane.key}`}>
               <rect x={0} y={y} width={totalW} height={ROW_H} fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
-              <text x={10} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, labelChars)}</text>
+              <text x={groupByOrg ? 22 : 10} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 2 : labelChars)}</text>
             </g>
           );
         })}
@@ -380,7 +416,9 @@ export default function GanttChart({ calendars, characters, events, calendarId }
           })}
 
           {/* キャラの生涯 */}
-          {charLanes.map((lane, i) => {
+          {charRows.map((r, i) => {
+            if (r.kind !== "lane") return null;
+            const lane = r.lane;
             const y = HEADER_H + (rowOffset + i) * ROW_H;
             const barY = y + (ROW_H - BAR_H) / 2;
             // 存命(open)は誕生〜現在まで棒を伸ばす（死亡キャラの誕生〜死亡と同じ棒表示）
