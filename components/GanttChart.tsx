@@ -17,7 +17,7 @@ type Lane = {
   label: string;
   start: number;
   end: number;
-  open: boolean;
+  open: boolean; // 終端未確定（存命 / 進行中）
   layer: "character" | "event";
   importance: number;
   approximate: boolean;
@@ -32,6 +32,7 @@ const ROW_H = 30;
 const BAR_H = 16;
 const MIN_SPAN = 2;
 const TAP_SLOP = 8; // これ未満の指の移動はタップ扱い(px)
+const HIT_PX = 16; // 出来事バンドで最寄りイベントを拾う距離(px)
 
 const LAYER_COLOR = { character: "#2563eb", event: "#d97706" } as const;
 const LAYER_LABEL = { character: "キャラ", event: "出来事" } as const;
@@ -44,12 +45,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const wrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const [cw, setCw] = useState(0); // 計測したコンテナ幅
+  const [cw, setCw] = useState(0);
   const [view, setView] = useState<View | null>(null);
   const [dragging, setDragging] = useState(false);
   const [hover, setHover] = useState<{ lane: Lane; x: number; y: number } | null>(null);
 
-  // マウス/タッチのジェスチャ状態（絶対起点方式で描画タイミングに依存させない）
   const gestureRef = useRef<{
     mode: "none" | "pan" | "pinch";
     startX: number;
@@ -72,48 +72,49 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     calendars.find((c) => c.id === calendarId) ??
     calendars[0] ?? { id: 0, name: "海円暦", description: null, offset_from_canonical: 0 };
 
-  // ── データ → レーン ─────────────────────────────────
-  const lanes: Lane[] = [];
+  // ── データ → レーン（キャラは1人1行、出来事は最上段の1バンドにまとめる）──
+  const charLanes: Lane[] = [];
   for (const ch of characters) {
     if (ch.birth_year == null) continue;
-    lanes.push({
+    charLanes.push({
       key: `c-${ch.id}`, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
       start: ch.birth_year, end: ch.death_year ?? ch.birth_year, open: ch.death_year == null,
       layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes,
     });
   }
-  for (const ev of events) {
-    lanes.push({
-      key: `e-${ev.id}`, label: ev.name, start: ev.start_year, end: ev.end_year ?? ev.start_year, open: false,
-      layer: "event", importance: ev.importance, approximate: ev.is_approximate, category: ev.category, description: ev.description,
-    });
-  }
+  charLanes.sort((a, b) => a.start - b.start);
 
-  const hasData = lanes.length > 0;
-  const years = hasData ? lanes.flatMap((l) => [l.start, l.end]) : [0, 1];
-  const rawMin = Math.min(...years);
-  const rawMax = Math.max(...years);
+  const evLanes: Lane[] = events.map((ev) => ({
+    key: `e-${ev.id}`, label: ev.name, start: ev.start_year, end: ev.end_year ?? ev.start_year, open: false,
+    layer: "event", importance: ev.importance, approximate: ev.is_approximate, category: ev.category, description: ev.description,
+  }));
+
+  const hasEventsRow = evLanes.length > 0;
+  const rowOffset = hasEventsRow ? 1 : 0; // 出来事バンドの分だけキャラ行を下げる
+  const rowCount = rowOffset + charLanes.length;
+  const hasData = rowCount > 0;
+
+  // ── 年ドメイン（全アイテムから）とレスポンシブ寸法 ─────
+  const allYears = [...charLanes, ...evLanes].flatMap((l) => [l.start, l.end]);
+  const rawMin = hasData ? Math.min(...allYears) : 0;
+  const rawMax = hasData ? Math.max(...allYears) : 1;
   const pad = Math.max(5, Math.round((rawMax - rawMin) * 0.04));
   const domainMin = rawMin - pad;
   const domainMax = rawMax + pad;
   const fullSpan = domainMax - domainMin;
 
-  // ── レスポンシブな寸法（コンテナ幅から算出） ──────────
   const W = Math.max(300, cw || 900);
   const isMobile = W < 480;
   const GUTTER = isMobile ? 108 : 200;
-  const RIGHT_PAD = isMobile ? 30 : 46; // 存命の「→現在」ラベル分の余白を確保
+  const RIGHT_PAD = isMobile ? 30 : 46;
   const CHART_W = Math.max(140, W - GUTTER - RIGHT_PAD);
   const totalW = GUTTER + CHART_W + RIGHT_PAD;
   const labelChars = isMobile ? 7 : 15;
+  const totalH = HEADER_H + rowCount * ROW_H + 8;
 
-  const ordered = [...lanes].sort((a, b) => {
-    if (a.layer !== b.layer) return a.layer === "character" ? -1 : 1;
-    return a.start - b.start;
-  });
-  const totalH = HEADER_H + ordered.length * ROW_H + 8;
+  const viewRef = useRef<View | null>(view);
+  viewRef.current = view;
 
-  // コンテナ幅を計測
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
@@ -123,7 +124,6 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     return () => ro.disconnect();
   }, []);
 
-  // domain（データ/フィルタ）変化時は表示範囲を全体にリセット
   useEffect(() => {
     setView({ start: domainMin, end: domainMax });
   }, [domainMin, domainMax]);
@@ -156,11 +156,27 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const svgLeft = () => svgRef.current?.getBoundingClientRect().left ?? 0;
   const yearAtPx = (px: number, base: View) =>
     makeYearScale(base.start, base.end, CHART_W).invert(clamp(px, 0, CHART_W));
-  const laneAt = (clientX: number, clientY: number): Lane | null => {
+
+  // 行(y) と x近接(出来事バンド) を統合したヒット判定
+  const hitTest = (clientX: number, clientY: number): Lane | null => {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return null;
-    const idx = Math.floor((clientY - rect.top - HEADER_H) / ROW_H);
-    return idx >= 0 && idx < ordered.length ? ordered[idx] : null;
+    const row = Math.floor((clientY - rect.top - HEADER_H) / ROW_H);
+    if (row < 0) return null;
+    if (hasEventsRow && row === 0) {
+      const px = clientX - rect.left;
+      let best: Lane | null = null;
+      let bd = Infinity;
+      for (const ev of evLanes) {
+        const a = x(ev.start);
+        const b = x(ev.end);
+        const d = px < a ? a - px : px > b ? px - b : 0;
+        if (d < bd) { bd = d; best = ev; }
+      }
+      return bd <= HIT_PX ? best : null;
+    }
+    const idx = row - rowOffset;
+    return idx >= 0 && idx < charLanes.length ? charLanes[idx] : null;
   };
   const showTipAt = (lane: Lane, clientX: number, clientY: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -168,7 +184,6 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     setHover({ lane, x: clientX - rect.left, y: clientY - rect.top });
   };
 
-  // 最新クロージャをネイティブ listener から呼ぶ
   actionsRef.current = {
     onWheel: (e) => {
       e.preventDefault();
@@ -181,7 +196,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       if (e.touches.length === 1) {
         const t = e.touches[0];
         g.mode = "pan"; g.startX = t.clientX; g.startY = t.clientY; g.startView = eff;
-        g.moved = false; g.lane = laneAt(t.clientX, t.clientY);
+        g.moved = false; g.lane = hitTest(t.clientX, t.clientY);
       } else if (e.touches.length === 2) {
         e.preventDefault();
         const [a, b] = [e.touches[0], e.touches[1]];
@@ -205,8 +220,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       const g = gestureRef.current;
       g.lastTouch = Date.now();
       if (g.mode === "pan" && !g.moved) {
-        e.preventDefault(); // タップ後の互換マウスイベント抑止
-        // タップ = 詳細表示（同じ行を再タップ or 空所で閉じる）
+        e.preventDefault();
         if (g.lane && hover?.lane.key !== g.lane.key) showTipAt(g.lane, g.startX, g.startY);
         else setHover(null);
       }
@@ -214,7 +228,6 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     },
   };
 
-  // ネイティブ listener（passive:false）。svg の生成/破棄に合わせて付け替え
   useEffect(() => {
     const svg = svgRef.current;
     if (!svg || !hasData) return;
@@ -242,8 +255,8 @@ export default function GanttChart({ calendars, characters, events, calendarId }
 
   const ticks = yearTicks(eff.start, eff.end);
   const clipId = "gantt-chart-clip";
+  const bandActive = hover?.lane.layer === "event";
 
-  // マウス・パン（デスクトップ）。タッチ直後の合成マウスイベントは無視。
   const isSyntheticMouse = () => Date.now() - gestureRef.current.lastTouch < 700;
   const onMouseDown = (e: React.MouseEvent) => {
     if (isSyntheticMouse()) return;
@@ -255,18 +268,20 @@ export default function GanttChart({ calendars, characters, events, calendarId }
     setHover(null);
   };
   const onMouseMove = (e: React.MouseEvent) => {
-    if (!dragging) return;
-    panBy(e.clientX - gestureRef.current.startX, gestureRef.current.startView);
+    if (dragging) { panBy(e.clientX - gestureRef.current.startX, gestureRef.current.startView); return; }
+    if (isSyntheticMouse()) return;
+    const t = hitTest(e.clientX, e.clientY);
+    if (t) showTipAt(t, e.clientX, e.clientY);
+    else setHover(null);
   };
   const endMouse = () => { if (dragging) { gestureRef.current.mode = "none"; setDragging(false); } };
-  const onRowMove = (lane: Lane, e: React.MouseEvent) => {
-    if (dragging || isSyntheticMouse()) return;
-    showTipAt(lane, e.clientX, e.clientY);
-  };
 
   const wrapperW = wrapperRef.current?.clientWidth ?? totalW;
   const tipW = Math.min(240, wrapperW - 16);
   const tipLeft = hover ? clamp(hover.x + 12, 8, Math.max(8, wrapperW - tipW - 8)) : 0;
+
+  // 出来事バンドの中心 y（最上段）
+  const bandY = HEADER_H + ROW_H / 2;
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -302,12 +317,21 @@ export default function GanttChart({ calendars, characters, events, calendarId }
           </clipPath>
         </defs>
 
-        {/* 行の背景 / 当たり判定（ラベル列含む・clipなし） */}
-        {ordered.map((lane, i) => {
-          const y = HEADER_H + i * ROW_H;
+        {/* 行の背景 / ラベル（clipなし） */}
+        {hasEventsRow && (
+          <g>
+            <rect x={0} y={HEADER_H} width={totalW} height={ROW_H} fill={bandActive ? "#fff7ed" : "#fafafa"} />
+            <line x1={0} y1={HEADER_H + ROW_H} x2={totalW} y2={HEADER_H + ROW_H} stroke="#e5e7eb" strokeWidth={1} />
+            <text x={10} y={HEADER_H + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fill="#111827" fontWeight={600}>
+              出来事
+            </text>
+          </g>
+        )}
+        {charLanes.map((lane, i) => {
+          const y = HEADER_H + (rowOffset + i) * ROW_H;
           const active = hover?.lane.key === lane.key;
           return (
-            <g key={`bg-${lane.key}`} onMouseMove={(e) => onRowMove(lane, e)} style={{ cursor: dragging ? "grabbing" : "pointer" }}>
+            <g key={`bg-${lane.key}`}>
               <rect x={0} y={y} width={totalW} height={ROW_H} fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
               <text x={10} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, labelChars)}</text>
             </g>
@@ -322,13 +346,37 @@ export default function GanttChart({ calendars, characters, events, calendarId }
               <text x={x(t)} y={HEADER_H - 14} textAnchor="middle" fontSize={11} fill="#6b7280">{formatYear(t, calendar)}</text>
             </g>
           ))}
-          {ordered.map((lane, i) => {
-            const y = HEADER_H + i * ROW_H;
+
+          {/* 出来事バンド: 全イベントを1行に配置（点=ダイヤ/範囲=バー、重要度でサイズ・濃さ） */}
+          {hasEventsRow && evLanes.map((ev) => {
+            const isPoint = ev.start === ev.end;
+            const x1 = x(ev.start);
+            const x2 = x(ev.end);
+            const active = hover?.lane.key === ev.key;
+            const op = active ? 1 : 0.4 + ev.importance * 0.11;
+            if (isPoint) {
+              const s = 10 + ev.importance * 2; // 重要度でダイヤサイズ
+              return (
+                <g key={`ev-${ev.key}`} transform={`translate(${x1}, ${bandY})`} style={{ pointerEvents: "none" }}>
+                  <rect x={-s / 2} y={-s / 2} width={s} height={s} transform="rotate(45)" fill={LAYER_COLOR.event} opacity={op}
+                    stroke={active ? "#7c2d12" : "none"} strokeWidth={active ? 1.5 : 0} />
+                </g>
+              );
+            }
+            return (
+              <rect key={`ev-${ev.key}`} x={x1} y={bandY - BAR_H / 2} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4}
+                fill={LAYER_COLOR.event} opacity={op} stroke={active ? "#7c2d12" : "none"} strokeWidth={active ? 1.5 : 0}
+                style={{ pointerEvents: "none" }} />
+            );
+          })}
+
+          {/* キャラの生涯 */}
+          {charLanes.map((lane, i) => {
+            const y = HEADER_H + (rowOffset + i) * ROW_H;
             const barY = y + (ROW_H - BAR_H) / 2;
             const isPoint = lane.start === lane.end;
             const x1 = x(lane.start);
             const x2 = x(lane.open ? eff.end : lane.end);
-            const color = LAYER_COLOR[lane.layer];
             const active = hover?.lane.key === lane.key;
             const rangeLabel = isPoint
               ? formatYear(lane.start, calendar, lane.approximate)
@@ -337,14 +385,13 @@ export default function GanttChart({ calendars, characters, events, calendarId }
               <g key={`bar-${lane.key}`} style={{ pointerEvents: "none" }}>
                 {isPoint ? (
                   <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
-                    <rect x={-BAR_H / 2} y={-BAR_H / 2} width={BAR_H} height={BAR_H} transform="rotate(45)" fill={color} opacity={active ? 1 : 0.85} />
+                    <rect x={-BAR_H / 2} y={-BAR_H / 2} width={BAR_H} height={BAR_H} transform="rotate(45)" fill={LAYER_COLOR.character} opacity={active ? 1 : 0.85} />
                   </g>
                 ) : (
-                  <rect x={x1} y={barY} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4} fill={color}
-                    opacity={lane.layer === "event" ? 0.35 + lane.importance * 0.12 : 0.85}
-                    stroke={active ? "#1e3a8a" : "none"} strokeWidth={active ? 1.5 : 0} />
+                  <rect x={x1} y={barY} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4} fill={LAYER_COLOR.character}
+                    opacity={active ? 1 : 0.85} stroke={active ? "#1e3a8a" : "none"} strokeWidth={active ? 1.5 : 0} />
                 )}
-                {lane.open && <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={color}>→現在</text>}
+                {lane.open && <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={LAYER_COLOR.character}>→現在</text>}
                 {!lane.open && <text x={(isPoint ? x1 + BAR_H : x2) + 6} y={barY + BAR_H - 3} fontSize={10} fill="#6b7280">{rangeLabel}</text>}
               </g>
             );
@@ -393,7 +440,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ background: LAYER_COLOR.event }} />
-          出来事（濃さ = 重要度）
+          出来事（最上段の帯・濃さ/大きさ = 重要度）
         </span>
       </div>
     </div>
