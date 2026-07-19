@@ -103,6 +103,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
   const domainMin = rawMin - pad;
   const domainMax = rawMax + pad;
   const fullSpan = domainMax - domainMin;
+  const presentYear = rawMax; // 存命キャラの棒はここ（＝データ上の最新年＝現在）まで伸ばす
 
   const W = Math.max(300, cw || 900);
   const isMobile = W < 480;
@@ -381,9 +382,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
           {charLanes.map((lane, i) => {
             const y = HEADER_H + (rowOffset + i) * ROW_H;
             const barY = y + (ROW_H - BAR_H) / 2;
-            const isPoint = lane.start === lane.end;
+            // 存命(open)は誕生〜現在まで棒を伸ばす（死亡キャラの誕生〜死亡と同じ棒表示）
+            const barEnd = lane.open ? presentYear : lane.end;
+            const isPoint = lane.start === barEnd;
             const x1 = x(lane.start);
-            const x2 = x(lane.open ? eff.end : lane.end);
+            const x2 = x(barEnd);
             const active = hover?.lane.key === lane.key;
             const rangeLabel = isPoint
               ? formatYear(lane.start, calendar, lane.approximate)
@@ -398,8 +401,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
                   <rect x={x1} y={barY} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4} fill={LAYER_COLOR.character}
                     opacity={active ? 1 : 0.85} stroke={active ? "#1e3a8a" : "none"} strokeWidth={active ? 1.5 : 0} />
                 )}
-                {lane.open && <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={LAYER_COLOR.character}>→現在</text>}
-                {!lane.open && <text x={(isPoint ? x1 + BAR_H : x2) + 6} y={barY + BAR_H - 3} fontSize={10} fill="#6b7280">{rangeLabel}</text>}
+                <text x={(isPoint ? x1 + BAR_H : x2) + 6} y={barY + BAR_H - 3} fontSize={10} fill="#6b7280">{rangeLabel}</text>
               </g>
             );
           })}
@@ -435,9 +437,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
             )}
           </div>
           <div className="mb-1 font-medium text-gray-700">
-            {hover.lane.start === hover.lane.end
-              ? formatYear(hover.lane.start, calendar, hover.lane.approximate)
-              : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${hover.lane.open ? "現在" : formatYear(hover.lane.end, calendar)}`}
+            {hover.lane.open
+              ? `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – 現在`
+              : hover.lane.start === hover.lane.end
+                ? formatYear(hover.lane.start, calendar, hover.lane.approximate)
+                : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${formatYear(hover.lane.end, calendar)}`}
             <span className="ml-1 text-gray-400">（{calendar.name}）</span>
           </div>
           {hover.lane.description && <p className="text-gray-600">{hover.lane.description}</p>}
