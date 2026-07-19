@@ -66,14 +66,15 @@ create table if not exists character_organizations (
   primary key (character_id, organization_id)
 );
 
--- キャラ個別のイベント（人生の節目。世界の出来事 events とは別に、そのキャラの生涯上に配置）
-create table if not exists character_events (
-  id           bigint generated always as identity primary key,
-  character_id bigint not null references characters(id) on delete cascade,
-  name         text not null,
-  description  text,
-  year         integer not null,   -- canonical年（点イベント）
-  sort_order   integer not null default 0
+-- キャラ ↔ 出来事(events) の中間テーブル。イベントの実態は events が持つ。
+-- character_id = 0 は「ワンピース世界の出来事」（特定キャラに紐づかない）を表す。
+-- （旧: name/year 等を持つ実体テーブル → 中間テーブルへ構造変更のため作り直す）
+drop table if exists character_events;
+create table character_events (
+  character_id bigint not null,                                   -- 0 = 世界の出来事 / それ以外は characters.id
+  event_id     bigint not null references events(id) on delete cascade,
+  sort_order   integer not null default 0,
+  primary key (character_id, event_id)
 );
 
 -- ── RLS: 公開read（書き込みは当面なし） ──────────────────

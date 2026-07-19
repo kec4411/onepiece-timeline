@@ -26,18 +26,24 @@ export type Character = {
   notes: string | null;
   /** 取得時に junction を結合して付与する所属組織（DB列ではない派生データ） */
   orgs?: CharacterOrg[];
-  /** 取得時に付与するキャラ個別イベント（人生の節目） */
-  events?: CharacterEvent[];
+  /** 取得時に付与するキャラ個別イベント（人生の節目。events + character_events から導出） */
+  events?: CharacterMilestone[];
 };
 
-export type CharacterEvent = {
-  id: number;
+/** キャラ ↔ 出来事(events) の中間テーブル行。character_id = 0 は世界の出来事。 */
+export type CharacterEventLink = {
   character_id: number;
-  name: string;
-  description: string | null;
-  /** canonical年（点イベント） */
-  year: number;
+  event_id: number;
   sort_order: number;
+};
+
+/** キャラに紐づく出来事を表示用に整形した派生データ（events から導出） */
+export type CharacterMilestone = {
+  id: number;
+  name: string;
+  /** canonical年（events.start_year） */
+  year: number;
+  description: string | null;
 };
 
 export type Organization = {

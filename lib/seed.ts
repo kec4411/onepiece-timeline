@@ -1,4 +1,4 @@
-import type { Calendar, Character, CharacterEvent, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
+import type { Calendar, Character, CharacterEventLink, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
 
 // ローカル・フォールバック用データ（Supabase 未接続時に表示）。
 // supabase/seed.sql と同じ内容。ONE PIECE 作中年代（最新章まで／ネタバレ含む）。
@@ -39,17 +39,19 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 10, organization_id: 4, role: "船長", sort_order: 0 },
 ];
 
-export const seedCharacterEvents: CharacterEvent[] = [
-  { id: 1, character_id: 1, name: "光月おでんが一味に加わる", description: "ワノ国の大名おでんがロジャー海賊団に同行。", year: 1490, sort_order: 0 },
-  { id: 2, character_id: 1, name: "ラフテルへ到達し海賊王に", description: "偉大なる航路を制覇し、最後の島ラフテルへ到達。", year: 1498, sort_order: 1 },
-  { id: 3, character_id: 1, name: "ローグタウンで処刑される", description: "自首し処刑。最期の言葉が大海賊時代を招いた。", year: 1500, sort_order: 2 },
-  { id: 4, character_id: 6, name: "ロジャーの処刑を見届ける", description: "見習いとしてロジャーの最期を見届ける。", year: 1500, sort_order: 0 },
-  { id: 5, character_id: 6, name: "ルフィに麦わら帽子を託す", description: "フーシャ村を発つ際、幼いルフィに帽子を預ける。", year: 1512, sort_order: 1 },
-  { id: 6, character_id: 6, name: "頂上戦争を終結させる", description: "マリンフォードに現れ、戦争に終止符を打つ。", year: 1522, sort_order: 2 },
-  { id: 7, character_id: 10, name: "ゴムゴムの実を食べる", description: "シャンクスの一味の宝を食べ、ゴム人間に。", year: 1512, sort_order: 0 },
-  { id: 8, character_id: 10, name: "東の海を出航（冒険の始まり）", description: "17歳、海賊王を目指して航海へ。", year: 1522, sort_order: 1 },
-  { id: 9, character_id: 10, name: "頂上戦争でエースを失う", description: "マリンフォードで兄エースを失う。", year: 1522, sort_order: 2 },
-  { id: 10, character_id: 10, name: "2年の修行を経て新世界へ", description: "再集結し、後半の海へ乗り出す。", year: 1524, sort_order: 3 },
+// キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
+export const seedCharacterEventLinks: CharacterEventLink[] = [
+  ...Array.from({ length: 17 }, (_, i) => ({ character_id: 0, event_id: i + 1, sort_order: 0 })),
+  { character_id: 1, event_id: 18, sort_order: 0 },
+  { character_id: 1, event_id: 19, sort_order: 1 },
+  { character_id: 1, event_id: 20, sort_order: 2 },
+  { character_id: 6, event_id: 21, sort_order: 0 },
+  { character_id: 6, event_id: 22, sort_order: 1 },
+  { character_id: 6, event_id: 23, sort_order: 2 },
+  { character_id: 10, event_id: 24, sort_order: 0 },
+  { character_id: 10, event_id: 25, sort_order: 1 },
+  { character_id: 10, event_id: 26, sort_order: 2 },
+  { character_id: 10, event_id: 27, sort_order: 3 },
 ];
 
 export const seedCharacters: Character[] = [
@@ -91,4 +93,15 @@ export const seedEvents: EventRow[] = [
   { id: 15, name: "世界会議（レヴェリー）", description: "加盟国の王が集う会議。水面下で政治が動いた。", start_year: 1523, end_year: null, is_approximate: true, category_id: 2, importance: 3 },
   { id: 16, name: "ワノ国編・カイドウ&オロチ打倒", description: "光月家と同盟がカイドウらを倒しワノ国を解放。", start_year: 1524, end_year: null, is_approximate: true, category_id: 4, importance: 4 },
   { id: 17, name: "エッグヘッド事件・最終章の始まり", description: "ベガパンクを巡り五老星が動き、最終章が本格化。", start_year: 1524, end_year: null, is_approximate: true, category_id: 3, importance: 4 },
+  // ↓ キャラ個別イベント（id 18..27）。category_id は null。character_events で各キャラに紐づく
+  { id: 18, name: "光月おでんが一味に加わる", description: "ワノ国の大名おでんがロジャー海賊団に同行。", start_year: 1490, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 19, name: "ラフテルへ到達し海賊王に", description: "偉大なる航路を制覇し、最後の島ラフテルへ到達。", start_year: 1498, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 20, name: "ローグタウンで処刑される", description: "自首し処刑。最期の言葉が大海賊時代を招いた。", start_year: 1500, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 21, name: "ロジャーの処刑を見届ける", description: "見習いとしてロジャーの最期を見届ける。", start_year: 1500, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 22, name: "ルフィに麦わら帽子を託す", description: "フーシャ村を発つ際、幼いルフィに帽子を預ける。", start_year: 1512, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 23, name: "頂上戦争を終結させる", description: "マリンフォードに現れ、戦争に終止符を打つ。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 24, name: "ゴムゴムの実を食べる", description: "シャンクスの一味の宝を食べ、ゴム人間に。", start_year: 1512, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 25, name: "東の海を出航（冒険の始まり）", description: "17歳、海賊王を目指して航海へ。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 26, name: "頂上戦争でエースを失う", description: "マリンフォードで兄エースを失う。", start_year: 1522, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 27, name: "2年の修行を経て新世界へ", description: "再集結し、後半の海へ乗り出す。", start_year: 1524, end_year: null, is_approximate: false, category_id: null, importance: 3 },
 ];
