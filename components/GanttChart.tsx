@@ -13,6 +13,8 @@ type Props = {
   calendarId?: number;
   /** キャラ行を主所属の組織でグループ化する */
   groupByOrg?: boolean;
+  /** キャラ名ドラッグで並び替え（draggedId を targetId の位置へ移動） */
+  onReorderChar?: (draggedId: number, targetId: number) => void;
 };
 
 // キャラ領域の視覚的な行（グループ見出し or キャラのレーン）
@@ -20,6 +22,8 @@ type VisualRow = { kind: "header"; name: string; color: string | null } | { kind
 
 type Lane = {
   key: string;
+  /** キャラ行の場合の characters.id（並び替え用） */
+  charId?: number;
   label: string;
   start: number;
   end: number;
@@ -61,7 +65,7 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), h
 const truncate = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 const dist = (a: Touch, b: Touch) => Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 
-export default function GanttChart({ calendars, characters, events, calendarId, groupByOrg = false }: Props) {
+export default function GanttChart({ calendars, characters, events, calendarId, groupByOrg = false, onReorderChar }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -69,6 +73,8 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
   const [view, setView] = useState<View | null>(null);
   const [dragging, setDragging] = useState(false);
   const [hover, setHover] = useState<{ lane: Lane; x: number; y: number } | null>(null);
+  const [reorderId, setReorderId] = useState<number | null>(null); // 並び替え中のキャラid
+  const reorderGroupRef = useRef<string | null>(null);
 
   const gestureRef = useRef<{
     mode: "none" | "pan" | "pinch";
@@ -97,13 +103,13 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
   for (const ch of characters) {
     if (ch.birth_year == null) continue;
     charLanes.push({
-      key: `c-${ch.id}`, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
+      key: `c-${ch.id}`, charId: ch.id, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
       start: ch.birth_year, end: ch.death_year ?? ch.birth_year, open: ch.death_year == null,
       layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes, orgs: ch.orgs,
       milestones: (ch.events ?? []).map((e) => ({ id: e.id, name: e.name, year: e.year, description: e.description })),
     });
   }
-  charLanes.sort((a, b) => a.start - b.start);
+  // 並び順は受け取った characters の順（TimelineView が制御。既定は生年順）。
 
   const evLanes: Lane[] = events.map((ev) => ({
     key: `e-${ev.id}`, label: ev.name, start: ev.start_year, end: ev.end_year ?? ev.start_year, open: false,
@@ -173,6 +179,31 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
     const start = Math.min(Math.max(INITIAL_START_YEAR, domainMin), domainMax - MIN_SPAN);
     setView({ start, end: domainMax });
   }, [domainMin, domainMax]);
+
+  // 並び替え対象の所属グループ（グループ化時=主所属名 / 非グループ時=全体）
+  const laneGroup = (lane: Lane): string => (groupByOrg ? lane.orgs?.[0]?.name ?? "所属なし" : "all");
+
+  // キャラ名ドラッグ中: ポインタが重なった同グループの行と入れ替える（ライブ並び替え）
+  useEffect(() => {
+    if (reorderId == null) return;
+    const onMove = (e: MouseEvent) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const idx = Math.floor((e.clientY - rect.top - HEADER_H) / ROW_H) - rowOffset;
+      const r = charRows[idx];
+      if (r && r.kind === "lane" && r.lane.charId != null && r.lane.charId !== reorderId && laneGroup(r.lane) === reorderGroupRef.current) {
+        onReorderChar?.(reorderId, r.lane.charId);
+      }
+    };
+    const onUp = () => setReorderId(null);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reorderId, charRows, rowOffset, groupByOrg, onReorderChar]);
 
   const eff: View = view ?? { start: domainMin, end: domainMax };
   const xScale = makeYearScale(eff.start, eff.end, CHART_W);
@@ -334,6 +365,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
     setHover(null);
   };
   const onMouseMove = (e: React.MouseEvent) => {
+    if (reorderId != null) return; // 並び替え中はツールチップを出さない
     if (dragging) { panBy(e.clientX - gestureRef.current.startX, gestureRef.current.startView); return; }
     if (isSyntheticMouse()) return;
     const t = hitTest(e.clientX, e.clientY);
@@ -341,6 +373,16 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
     else setHover(null);
   };
   const endMouse = () => { if (dragging) { gestureRef.current.mode = "none"; setDragging(false); } };
+
+  // キャラ名（ガター）ドラッグで並び替え開始
+  const startReorder = (lane: Lane, e: React.MouseEvent) => {
+    if (!onReorderChar || lane.charId == null) return;
+    e.stopPropagation();
+    e.preventDefault();
+    reorderGroupRef.current = laneGroup(lane);
+    setReorderId(lane.charId);
+    setHover(null);
+  };
 
   const wrapperW = wrapperRef.current?.clientWidth ?? totalW;
   const wrapperH = wrapperRef.current?.clientHeight ?? totalH;
@@ -362,7 +404,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           <button type="button" onClick={() => zoomAround((eff.start + eff.end) / 2, 0.7)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50" aria-label="拡大">＋</button>
         </div>
         <span className="text-xs text-gray-400">
-          {isMobile ? "スワイプで移動 / ピンチで拡大" : "ドラッグで移動 / ホイールで拡大縮小"}{zoomed ? "（拡大中）" : ""}
+          {isMobile ? "スワイプで移動 / ピンチで拡大" : "ドラッグで移動 / ホイールで拡大縮小 / 名前をドラッグで並び替え"}{zoomed ? "（拡大中）" : ""}
         </span>
       </div>
 
@@ -409,10 +451,25 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           }
           const lane = r.lane;
           const active = hover?.lane.key === lane.key;
+          const isDragged = reorderId != null && lane.charId === reorderId;
+          const canReorder = Boolean(onReorderChar) && lane.charId != null && !isMobile;
+          const labelX = groupByOrg ? 24 : 12;
+          const cy = y + ROW_H / 2;
           return (
             <g key={`bg-${lane.key}`}>
-              <rect x={0} y={y} width={totalW} height={ROW_H} fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
-              <text x={groupByOrg ? 22 : 10} y={y + ROW_H / 2 + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 2 : labelChars)}</text>
+              <rect x={0} y={y} width={totalW} height={ROW_H} fill={isDragged ? "#e0e7ff" : active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
+              {canReorder && (
+                <g fill="#cbd5e1">
+                  <circle cx={groupByOrg ? 16 : 5} cy={cy - 4} r={1} />
+                  <circle cx={groupByOrg ? 16 : 5} cy={cy} r={1} />
+                  <circle cx={groupByOrg ? 16 : 5} cy={cy + 4} r={1} />
+                </g>
+              )}
+              <text x={labelX} y={cy + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 2 : labelChars)}</text>
+              {canReorder && (
+                <rect x={0} y={y} width={GUTTER} height={ROW_H} fill="transparent"
+                  onMouseDown={(e) => startReorder(lane, e)} style={{ cursor: reorderId != null ? "grabbing" : "grab" }} />
+              )}
             </g>
           );
         })}

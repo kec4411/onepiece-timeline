@@ -50,6 +50,27 @@ export default function TimelineView({ calendars, characters, events }: Props) {
   const [hiddenOrgs, setHiddenOrgs] = useState<Set<string>>(new Set());
   const [groupByOrg, setGroupByOrg] = useState(false);
 
+  // キャラの表示順（id 配列。null=既定＝生年順）。名前ドラッグで更新。
+  const [charOrder, setCharOrder] = useState<number[] | null>(null);
+  const orderedCharacters = useMemo(() => {
+    if (!charOrder) return characters;
+    const idx = new Map(charOrder.map((id, i) => [id, i]));
+    return [...characters].sort((a, b) => (idx.get(a.id) ?? 1e9) - (idx.get(b.id) ?? 1e9));
+  }, [characters, charOrder]);
+  const handleReorder = (draggedId: number, targetId: number) => {
+    setCharOrder((prev) => {
+      const base = prev ?? characters.map((c) => c.id);
+      const from = base.indexOf(draggedId);
+      const to = base.indexOf(targetId);
+      if (from < 0 || to < 0 || from === to) return base;
+      const arr = base.slice();
+      arr.splice(from, 1);
+      const targetIdx = arr.indexOf(targetId);
+      arr.splice(from < to ? targetIdx + 1 : targetIdx, 0, draggedId);
+      return arr;
+    });
+  };
+
   const toggleOrg = (name: string) =>
     setHiddenOrgs((prev) => {
       const next = new Set(prev);
@@ -60,7 +81,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
 
   // フィルタ適用（キャラは主所属で絞り込み。主所属が無いキャラは常に表示）
   const filteredCharacters = showCharacters
-    ? characters.filter((c) => {
+    ? orderedCharacters.filter((c) => {
         const p = c.orgs?.[0];
         return !p || !hiddenOrgs.has(p.name);
       })
@@ -156,6 +177,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
         events={filteredEvents}
         calendarId={selected?.id}
         groupByOrg={groupByOrg}
+        onReorderChar={handleReorder}
       />
     </div>
   );
