@@ -9,7 +9,7 @@
 --   として格納しています。★相対的な間隔は原作準拠で正確／絶対数値は便宜設定★。
 --   出典: One Piece Wiki（Void Century, God Valley Incident, Gol D. Roger, Kouzuki Oden 他）。
 
-truncate table calendars, characters, events, event_categories, organizations, character_organizations restart identity cascade;
+truncate table calendars, characters, events, event_categories, organizations, character_organizations, character_events restart identity cascade;
 
 -- 暦（表示ラベル。海円暦=基準、天暦=表示切替のサンプル）
 insert into calendars (name, description, offset_from_canonical) values
@@ -83,3 +83,20 @@ insert into character_organizations (character_id, organization_id, role, sort_o
   (8, 2, '二番隊隊長', 0),   -- エース: 白ひげ海賊団
   (9, 4, '戦闘員',     0),   -- ゾロ: 麦わらの一味
   (10, 4, '船長',      0);   -- ルフィ: 麦わらの一味
+
+-- キャラ個別のイベント（人生の節目）。character_id は上記キャラの挿入順 id
+-- （1=ロジャー, 6=シャンクス, 10=ルフィ）
+insert into character_events (character_id, name, description, year, sort_order) values
+  -- ゴール・D・ロジャー（1）
+  (1, '光月おでんが一味に加わる',     'ワノ国の大名おでんがロジャー海賊団に同行。',            1490, 0),
+  (1, 'ラフテルへ到達し海賊王に',     '偉大なる航路を制覇し、最後の島ラフテルへ到達。',        1498, 1),
+  (1, 'ローグタウンで処刑される',     '自首し処刑。最期の言葉が大海賊時代を招いた。',          1500, 2),
+  -- シャンクス（6）
+  (6, 'ロジャーの処刑を見届ける',     '見習いとしてロジャーの最期を見届ける。',                1500, 0),
+  (6, 'ルフィに麦わら帽子を託す',     'フーシャ村を発つ際、幼いルフィに帽子を預ける。',        1512, 1),
+  (6, '頂上戦争を終結させる',         'マリンフォードに現れ、戦争に終止符を打つ。',            1522, 2),
+  -- モンキー・D・ルフィ（10）
+  (10, 'ゴムゴムの実を食べる',        'シャンクスの一味の宝を食べ、ゴム人間に。',              1512, 0),
+  (10, '東の海を出航（冒険の始まり）', '17歳、海賊王を目指して航海へ。',                        1522, 1),
+  (10, '頂上戦争でエースを失う',       'マリンフォードで兄エースを失う。',                      1522, 2),
+  (10, '2年の修行を経て新世界へ',     '再集結し、後半の海へ乗り出す。',                        1524, 3);

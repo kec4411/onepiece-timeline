@@ -26,6 +26,18 @@ export type Character = {
   notes: string | null;
   /** 取得時に junction を結合して付与する所属組織（DB列ではない派生データ） */
   orgs?: CharacterOrg[];
+  /** 取得時に付与するキャラ個別イベント（人生の節目） */
+  events?: CharacterEvent[];
+};
+
+export type CharacterEvent = {
+  id: number;
+  character_id: number;
+  name: string;
+  description: string | null;
+  /** canonical年（点イベント） */
+  year: number;
+  sort_order: number;
 };
 
 export type Organization = {

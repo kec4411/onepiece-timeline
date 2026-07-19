@@ -66,8 +66,10 @@ npm run dev                        # PostgreSQL コンテナ起動 → http://lo
 `organizations`（海賊団・海軍など）と中間テーブル `character_organizations`（キャラ↔組織の多対多。
 例: おでん＝ロジャー海賊団＋白ひげ海賊団＋光月家）。所属はツールチップに表示し、
 **キャラのバーは主所属の組織カラーで着色**、**組織でのグループ化/フィルタ**にも対応。
-出来事は `event_categories`（カテゴリ＋アイコン絵文字）を `category_id` で参照し、
+出来事は `event_categories`（カテゴリ＋アイコン）を `category_id` で参照し、
 **点イベント（`end_year` が null）はカテゴリのアイコンで表示**。
+さらに `character_events`（キャラ個別イベント＝人生の節目）を持ち、
+**各キャラの生涯バー上に節目マーカー（○）** として表示（世界の出来事 `events` とは別軸）。
 
 ## 時間の考え方
 

@@ -1,4 +1,4 @@
-import type { Calendar, Character, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
+import type { Calendar, Character, CharacterEvent, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
 
 // ローカル・フォールバック用データ（Supabase 未接続時に表示）。
 // supabase/seed.sql と同じ内容。ONE PIECE 作中年代（最新章まで／ネタバレ含む）。
@@ -37,6 +37,19 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 8, organization_id: 2, role: "二番隊隊長", sort_order: 0 },
   { character_id: 9, organization_id: 4, role: "戦闘員", sort_order: 0 },
   { character_id: 10, organization_id: 4, role: "船長", sort_order: 0 },
+];
+
+export const seedCharacterEvents: CharacterEvent[] = [
+  { id: 1, character_id: 1, name: "光月おでんが一味に加わる", description: "ワノ国の大名おでんがロジャー海賊団に同行。", year: 1490, sort_order: 0 },
+  { id: 2, character_id: 1, name: "ラフテルへ到達し海賊王に", description: "偉大なる航路を制覇し、最後の島ラフテルへ到達。", year: 1498, sort_order: 1 },
+  { id: 3, character_id: 1, name: "ローグタウンで処刑される", description: "自首し処刑。最期の言葉が大海賊時代を招いた。", year: 1500, sort_order: 2 },
+  { id: 4, character_id: 6, name: "ロジャーの処刑を見届ける", description: "見習いとしてロジャーの最期を見届ける。", year: 1500, sort_order: 0 },
+  { id: 5, character_id: 6, name: "ルフィに麦わら帽子を託す", description: "フーシャ村を発つ際、幼いルフィに帽子を預ける。", year: 1512, sort_order: 1 },
+  { id: 6, character_id: 6, name: "頂上戦争を終結させる", description: "マリンフォードに現れ、戦争に終止符を打つ。", year: 1522, sort_order: 2 },
+  { id: 7, character_id: 10, name: "ゴムゴムの実を食べる", description: "シャンクスの一味の宝を食べ、ゴム人間に。", year: 1512, sort_order: 0 },
+  { id: 8, character_id: 10, name: "東の海を出航（冒険の始まり）", description: "17歳、海賊王を目指して航海へ。", year: 1522, sort_order: 1 },
+  { id: 9, character_id: 10, name: "頂上戦争でエースを失う", description: "マリンフォードで兄エースを失う。", year: 1522, sort_order: 2 },
+  { id: 10, character_id: 10, name: "2年の修行を経て新世界へ", description: "再集結し、後半の海へ乗り出す。", year: 1524, sort_order: 3 },
 ];
 
 export const seedCharacters: Character[] = [

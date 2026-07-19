@@ -66,6 +66,16 @@ create table if not exists character_organizations (
   primary key (character_id, organization_id)
 );
 
+-- キャラ個別のイベント（人生の節目。世界の出来事 events とは別に、そのキャラの生涯上に配置）
+create table if not exists character_events (
+  id           bigint generated always as identity primary key,
+  character_id bigint not null references characters(id) on delete cascade,
+  name         text not null,
+  description  text,
+  year         integer not null,   -- canonical年（点イベント）
+  sort_order   integer not null default 0
+);
+
 -- ── RLS: 公開read（書き込みは当面なし） ──────────────────
 alter table calendars               enable row level security;
 alter table characters              enable row level security;
@@ -73,6 +83,7 @@ alter table events                  enable row level security;
 alter table event_categories        enable row level security;
 alter table organizations           enable row level security;
 alter table character_organizations enable row level security;
+alter table character_events        enable row level security;
 
 drop policy if exists "public read calendars"               on calendars;
 drop policy if exists "public read characters"              on characters;
@@ -80,6 +91,7 @@ drop policy if exists "public read events"                  on events;
 drop policy if exists "public read event_categories"        on event_categories;
 drop policy if exists "public read organizations"           on organizations;
 drop policy if exists "public read character_organizations" on character_organizations;
+drop policy if exists "public read character_events"        on character_events;
 
 create policy "public read calendars"               on calendars               for select using (true);
 create policy "public read characters"              on characters              for select using (true);
@@ -87,6 +99,7 @@ create policy "public read events"                  on events                  f
 create policy "public read event_categories"        on event_categories        for select using (true);
 create policy "public read organizations"           on organizations           for select using (true);
 create policy "public read character_organizations" on character_organizations for select using (true);
+create policy "public read character_events"        on character_events        for select using (true);
 
 -- ── データ投入 ──────────────────────────────────────────
 -- データは supabase/seed.sql を実行してください（実データ。TRUNCATE→INSERT）。

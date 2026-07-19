@@ -34,6 +34,12 @@ type Lane = {
   color?: string | null;
   description: string | null;
   orgs?: CharacterOrg[];
+  /** キャラの生涯バー上に置く節目イベント */
+  milestones?: { id: number; name: string; year: number; description: string | null }[];
+  /** ツールチップ用: 節目イベント時に「誰の」を示す */
+  subtitle?: string | null;
+  /** この Lane が節目イベント（キャラ個別イベント）を表すか */
+  isMilestone?: boolean;
 };
 
 type View = { start: number; end: number };
@@ -45,6 +51,8 @@ const MIN_SPAN = 2;
 const INITIAL_START_YEAR = 1400; // 初期表示の左端（canonical年 = 海円暦1400年。現在まで表示）
 const TAP_SLOP = 8; // これ未満の指の移動はタップ扱い(px)
 const HIT_PX = 16; // 出来事バンドで最寄りイベントを拾う距離(px)
+const MILE_HIT_PX = 10; // キャラ行で節目マーカーを拾う距離(px)
+const MILESTONE_COLOR = "#1f2937"; // 節目マーカー（gray-800）
 
 const LAYER_COLOR = { character: "#2563eb", event: "#d97706" } as const;
 const LAYER_LABEL = { character: "キャラ", event: "出来事" } as const;
@@ -92,6 +100,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
       key: `c-${ch.id}`, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
       start: ch.birth_year, end: ch.death_year ?? ch.birth_year, open: ch.death_year == null,
       layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes, orgs: ch.orgs,
+      milestones: (ch.events ?? []).map((e) => ({ id: e.id, name: e.name, year: e.year, description: e.description })),
     });
   }
   charLanes.sort((a, b) => a.start - b.start);
@@ -214,7 +223,26 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
     }
     const idx = row - rowOffset;
     const r = charRows[idx];
-    return r && r.kind === "lane" ? r.lane : null;
+    if (!r || r.kind !== "lane") return null;
+    const lane = r.lane;
+    // 生涯バー上の節目マーカーに近ければ、そのイベントを返す
+    if (lane.milestones && lane.milestones.length) {
+      const px = clientX - rect.left;
+      let best: (typeof lane.milestones)[number] | null = null;
+      let bd = Infinity;
+      for (const m of lane.milestones) {
+        const d = Math.abs(px - x(m.year));
+        if (d < bd) { bd = d; best = m; }
+      }
+      if (best && bd <= MILE_HIT_PX) {
+        return {
+          key: `m-${best.id}`, label: best.name, start: best.year, end: best.year, open: false,
+          layer: "event", importance: 0, approximate: false, category: null, description: best.description,
+          color: MILESTONE_COLOR, subtitle: lane.label, isMilestone: true,
+        };
+      }
+    }
+    return lane;
   };
   const showTipAt = (lane: Lane, clientX: number, clientY: number) => {
     const rect = wrapperRef.current?.getBoundingClientRect();
@@ -398,7 +426,7 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
             </g>
           ))}
 
-          {/* ホバー中イベントの位置を縦に貫くガイド線（色はグリッド線と同じ） */}
+          {/* ホバー中イベント（世界の出来事 or 節目）の位置を縦に貫くガイド線（色はグリッド線と同じ） */}
           {hover && hover.lane.layer === "event" && (
             <line x1={x(hover.lane.start)} y1={HEADER_H - 8} x2={x(hover.lane.start)} y2={totalH} stroke="#e5e7eb" strokeWidth={2} />
           )}
@@ -468,6 +496,19 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
               </g>
             );
           })}
+
+          {/* キャラ生涯バー上の節目マーカー（キャラ個別イベント） */}
+          {charRows.map((r, i) => {
+            if (r.kind !== "lane" || !r.lane.milestones?.length) return null;
+            const cy = HEADER_H + (rowOffset + i) * ROW_H + ROW_H / 2;
+            return r.lane.milestones.map((m) => {
+              const active = hover?.lane.key === `m-${m.id}`;
+              return (
+                <circle key={`m-${m.id}`} cx={x(m.year)} cy={cy} r={active ? 5.5 : 4}
+                  fill="#ffffff" stroke={MILESTONE_COLOR} strokeWidth={active ? 2 : 1.5} style={{ pointerEvents: "none" }} />
+              );
+            });
+          })}
         </g>
 
         <line x1={GUTTER} y1={HEADER_H - 8} x2={GUTTER} y2={totalH} stroke="#d1d5db" strokeWidth={1} />
@@ -486,22 +527,28 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           }}
         >
           <div className="mb-1 flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: hover.lane.layer === "character" ? (hover.lane.orgs?.[0]?.color ?? LAYER_COLOR.character) : LAYER_COLOR.event }} />
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: hover.lane.isMilestone ? MILESTONE_COLOR : hover.lane.layer === "character" ? (hover.lane.orgs?.[0]?.color ?? LAYER_COLOR.character) : LAYER_COLOR.event }} />
             <span className="font-semibold text-gray-900">{hover.lane.label}</span>
           </div>
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
-            <span>{LAYER_LABEL[hover.lane.layer]}</span>
-            {hover.lane.layer === "event" && hover.lane.category && (
-              <span className="inline-flex items-center gap-1">
-                <CategoryIcon iconKey={hover.lane.icon} color={hover.lane.color ?? LAYER_COLOR.event} size={13} />
-                {hover.lane.category}
-              </span>
-            )}
-            {hover.lane.layer === "event" && (
-              <span title={`重要度 ${hover.lane.importance}/5`}>
-                {"★".repeat(hover.lane.importance)}
-                <span className="text-gray-300">{"★".repeat(5 - hover.lane.importance)}</span>
-              </span>
+            {hover.lane.isMilestone ? (
+              <span>キャライベント・{hover.lane.subtitle}</span>
+            ) : (
+              <>
+                <span>{LAYER_LABEL[hover.lane.layer]}</span>
+                {hover.lane.layer === "event" && hover.lane.category && (
+                  <span className="inline-flex items-center gap-1">
+                    <CategoryIcon iconKey={hover.lane.icon} color={hover.lane.color ?? LAYER_COLOR.event} size={13} />
+                    {hover.lane.category}
+                  </span>
+                )}
+                {hover.lane.layer === "event" && (
+                  <span title={`重要度 ${hover.lane.importance}/5`}>
+                    {"★".repeat(hover.lane.importance)}
+                    <span className="text-gray-300">{"★".repeat(5 - hover.lane.importance)}</span>
+                  </span>
+                )}
+              </>
             )}
           </div>
           <div className="mb-1 font-medium text-gray-700">
@@ -535,6 +582,10 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ background: LAYER_COLOR.event }} />
           出来事（最上段。点=カテゴリのアイコン / 範囲=バー）
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full border-2 bg-white" style={{ borderColor: MILESTONE_COLOR }} />
+          節目（キャラ個別イベント）
         </span>
       </div>
     </div>

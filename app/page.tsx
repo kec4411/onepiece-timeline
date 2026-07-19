@@ -1,8 +1,8 @@
 import TimelineView from "@/components/TimelineView";
 import { getSupabase } from "@/lib/supabase";
 import { getPool } from "@/lib/db";
-import { seedCalendars, seedCharacterOrganizations, seedCharacters, seedEventCategories, seedEvents, seedOrganizations } from "@/lib/seed";
-import type { Calendar, Character, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
+import { seedCalendars, seedCharacterEvents, seedCharacterOrganizations, seedCharacters, seedEventCategories, seedEvents, seedOrganizations } from "@/lib/seed";
+import type { Calendar, Character, CharacterEvent, CharacterOrganization, EventCategory, EventRow, Organization } from "@/types/db";
 
 // 常に最新を読む（キャッシュしない）。MVP では十分。
 export const dynamic = "force-dynamic";
@@ -36,9 +36,22 @@ function attachCategories(events: EventRow[], categories: EventCategory[]): Even
   return events.map((e) => ({ ...e, category: e.category_id != null ? byId.get(e.category_id) ?? null : null }));
 }
 
+// character_events をキャラに結合して events（人生の節目）を付与する。
+function attachCharEvents(characters: Character[], charEvents: CharacterEvent[]): Character[] {
+  const byChar = new Map<number, CharacterEvent[]>();
+  for (const ce of charEvents) {
+    if (!byChar.has(ce.character_id)) byChar.set(ce.character_id, []);
+    byChar.get(ce.character_id)!.push(ce);
+  }
+  return characters.map((c) => ({
+    ...c,
+    events: (byChar.get(c.id) ?? []).sort((a, b) => a.sort_order - b.sort_order || a.year - b.year),
+  }));
+}
+
 const seed: Loaded = {
   calendars: seedCalendars,
-  characters: attachOrgs(seedCharacters, seedOrganizations, seedCharacterOrganizations),
+  characters: attachCharEvents(attachOrgs(seedCharacters, seedOrganizations, seedCharacterOrganizations), seedCharacterEvents),
   events: attachCategories(seedEvents, seedEventCategories),
   source: "seed",
 };
@@ -49,17 +62,21 @@ async function loadData(): Promise<Loaded> {
   const pool = getPool();
   if (pool) {
     try {
-      const [cal, chars, evs, cats, orgs, links] = await Promise.all([
+      const [cal, chars, evs, cats, orgs, links, cevs] = await Promise.all([
         pool.query("select * from calendars order by id"),
         pool.query("select * from characters order by birth_year"),
         pool.query("select * from events order by start_year"),
         pool.query("select * from event_categories order by sort_order"),
         pool.query("select * from organizations order by id"),
         pool.query("select * from character_organizations"),
+        pool.query("select * from character_events"),
       ]);
       return {
         calendars: cal.rows as Calendar[],
-        characters: attachOrgs(chars.rows as Character[], orgs.rows as Organization[], links.rows as CharacterOrganization[]),
+        characters: attachCharEvents(
+          attachOrgs(chars.rows as Character[], orgs.rows as Organization[], links.rows as CharacterOrganization[]),
+          cevs.rows as CharacterEvent[],
+        ),
         events: attachCategories(evs.rows as EventRow[], cats.rows as EventCategory[]),
         source: "postgres",
       };
@@ -71,18 +88,22 @@ async function loadData(): Promise<Loaded> {
   // 2) Supabase（本番）
   const supabase = getSupabase();
   if (supabase) {
-    const [cal, chars, evs, cats, orgs, links] = await Promise.all([
+    const [cal, chars, evs, cats, orgs, links, cevs] = await Promise.all([
       supabase.from("calendars").select("*").order("id"),
       supabase.from("characters").select("*").order("birth_year"),
       supabase.from("events").select("*").order("start_year"),
       supabase.from("event_categories").select("*").order("sort_order"),
       supabase.from("organizations").select("*").order("id"),
       supabase.from("character_organizations").select("*"),
+      supabase.from("character_events").select("*"),
     ]);
-    if (!cal.error && !chars.error && !evs.error && !cats.error && !orgs.error && !links.error) {
+    if (!cal.error && !chars.error && !evs.error && !cats.error && !orgs.error && !links.error && !cevs.error) {
       return {
         calendars: cal.data as Calendar[],
-        characters: attachOrgs(chars.data as Character[], orgs.data as Organization[], links.data as CharacterOrganization[]),
+        characters: attachCharEvents(
+          attachOrgs(chars.data as Character[], orgs.data as Organization[], links.data as CharacterOrganization[]),
+          cevs.data as CharacterEvent[],
+        ),
         events: attachCategories(evs.data as EventRow[], cats.data as EventCategory[]),
         source: "supabase",
       };
