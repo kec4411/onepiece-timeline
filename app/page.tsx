@@ -120,14 +120,13 @@ async function loadData(): Promise<Loaded> {
 
 export default async function Home() {
   const { calendars, characters, events, source } = await loadData();
+  // データソース表示は本番(Vercel production)のみ非表示。ローカル/プレビューでは表示。
+  const showDataSource = process.env.VERCEL_ENV !== "production";
 
   return (
     <main className="w-full px-4 py-8 sm:px-6 sm:py-10">
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">ONE PIECE 年表</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          作中暦の絶対年で、キャラの生涯と出来事を Gantt 表示（MVP）
-        </p>
       </header>
 
       {source === "seed" && (
@@ -141,9 +140,11 @@ export default async function Home() {
         <TimelineView calendars={calendars} characters={characters} events={events} />
       </section>
 
-      <footer className="mt-6 text-xs text-gray-400">
-        データソース: {source === "postgres" ? "ローカルDB (PostgreSQL)" : source === "supabase" ? "Supabase" : "ローカルサンプル"}
-      </footer>
+      {showDataSource && (
+        <footer className="mt-6 text-xs text-gray-400">
+          データソース: {source === "postgres" ? "ローカルDB (PostgreSQL)" : source === "supabase" ? "Supabase" : "ローカルサンプル"}
+        </footer>
+      )}
     </main>
   );
 }

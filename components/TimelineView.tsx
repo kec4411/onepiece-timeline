@@ -117,9 +117,6 @@ export default function TimelineView({ calendars, characters, events }: Props) {
                 );
               })}
             </div>
-            {selected?.description && (
-              <span className="text-xs text-gray-400">{selected.description}</span>
-            )}
           </div>
         )}
 
