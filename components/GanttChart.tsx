@@ -389,6 +389,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
             const x1 = x(lane.start);
             const x2 = x(barEnd);
             const active = hover?.lane.key === lane.key;
+            const barColor = lane.orgs?.[0]?.color ?? LAYER_COLOR.character; // 主所属の組織カラー
             const rangeLabel = isPoint
               ? formatYear(lane.start, calendar, lane.approximate)
               : `${formatYear(lane.start, calendar, lane.approximate)}–${lane.open ? "現在" : formatYear(lane.end, calendar)}`;
@@ -396,11 +397,11 @@ export default function GanttChart({ calendars, characters, events, calendarId }
               <g key={`bar-${lane.key}`} style={{ pointerEvents: "none" }}>
                 {isPoint ? (
                   <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
-                    <rect x={-BAR_H / 2} y={-BAR_H / 2} width={BAR_H} height={BAR_H} transform="rotate(45)" fill={LAYER_COLOR.character} opacity={active ? 1 : 0.85} />
+                    <rect x={-BAR_H / 2} y={-BAR_H / 2} width={BAR_H} height={BAR_H} transform="rotate(45)" fill={barColor} opacity={active ? 1 : 0.85} />
                   </g>
                 ) : (
-                  <rect x={x1} y={barY} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4} fill={LAYER_COLOR.character}
-                    opacity={active ? 1 : 0.85} stroke={active ? "#1e3a8a" : "none"} strokeWidth={active ? 1.5 : 0} />
+                  <rect x={x1} y={barY} width={Math.max(2, x2 - x1)} height={BAR_H} rx={4} fill={barColor}
+                    opacity={active ? 1 : 0.85} stroke={active ? "#111827" : "none"} strokeWidth={active ? 1.5 : 0} />
                 )}
                 <text x={(isPoint ? x1 + BAR_H : x2) + 6} y={barY + BAR_H - 3} fontSize={10} fill="#6b7280">{rangeLabel}</text>
               </g>
@@ -424,7 +425,7 @@ export default function GanttChart({ calendars, characters, events, calendarId }
           }}
         >
           <div className="mb-1 flex items-center gap-2">
-            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: LAYER_COLOR[hover.lane.layer] }} />
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: hover.lane.layer === "character" ? (hover.lane.orgs?.[0]?.color ?? LAYER_COLOR.character) : LAYER_COLOR.event }} />
             <span className="font-semibold text-gray-900">{hover.lane.label}</span>
           </div>
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
@@ -460,10 +461,10 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       )}
 
       {/* 凡例 */}
-      <div className="mt-3 flex gap-4 text-xs text-gray-600">
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-600">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-3 w-3 rounded-sm" style={{ background: LAYER_COLOR.character }} />
-          キャラの生涯
+          <span className="inline-block h-3 w-3 rounded-sm bg-gradient-to-r from-blue-600 via-amber-500 to-purple-600" />
+          キャラの生涯（バー色 = 所属組織）
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ background: LAYER_COLOR.event }} />
