@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Calendar, Character, EventRow } from "@/types/db";
 import { formatYear, makeYearScale, yearTicks } from "@/lib/time";
 
@@ -18,48 +18,45 @@ type Lane = {
   label: string;
   start: number;
   end: number;
-  /** 終端が未確定（存命 / 進行中）= 現在方向へ開いている */
-  open: boolean;
+  open: boolean; // 終端未確定（存命 / 進行中）
   layer: "character" | "event";
   importance: number;
   approximate: boolean;
   category: string | null;
   description: string | null;
-  notes: string | null;
 };
 
-const GUTTER = 208; // 左のラベル列
-const CHART_W = 920; // 年軸の描画幅
+type View = { start: number; end: number };
+
+const GUTTER = 208;
+const CHART_W = 920;
 const RIGHT_PAD = 24;
 const HEADER_H = 44;
 const ROW_H = 30;
 const BAR_H = 16;
+const MIN_SPAN = 2; // これ以上は拡大しない（年）
 
-const LAYER_COLOR = {
-  character: "#2563eb", // blue-600
-  event: "#d97706", // amber-600
-} as const;
+const LAYER_COLOR = { character: "#2563eb", event: "#d97706" } as const;
+const LAYER_LABEL = { character: "キャラ", event: "出来事" } as const;
 
-const LAYER_LABEL = {
-  character: "キャラ",
-  event: "出来事",
-} as const;
-
-function truncate(s: string, n = 15): string {
-  return s.length > n ? s.slice(0, n - 1) + "…" : s;
-}
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+const truncate = (s: string, n = 15) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
 
 export default function GanttChart({ calendars, characters, events, calendarId }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ active: boolean; lastX: number }>({ active: false, lastX: 0 });
+
+  const [view, setView] = useState<View | null>(null);
+  const [dragging, setDragging] = useState(false);
   const [hover, setHover] = useState<{ lane: Lane; x: number; y: number } | null>(null);
 
   const calendar =
     calendars.find((c) => c.id === calendarId) ??
     calendars[0] ?? { id: 0, name: "海円暦", description: null, offset_from_canonical: 0 };
 
-  // ── データ → レーンへ正規化 ───────────────────────────
+  // ── データ → レーン ─────────────────────────────────
   const lanes: Lane[] = [];
-
   for (const ch of characters) {
     if (ch.birth_year == null) continue;
     lanes.push({
@@ -73,7 +70,6 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       approximate: ch.is_approximate,
       category: ch.epithet,
       description: ch.notes,
-      notes: null,
     });
   }
   for (const ev of events) {
@@ -88,26 +84,72 @@ export default function GanttChart({ calendars, characters, events, calendarId }
       approximate: ev.is_approximate,
       category: ev.category,
       description: ev.description,
-      notes: null,
     });
   }
 
-  if (lanes.length === 0) {
-    return <p className="text-sm text-gray-500">表示できるデータがありません（フィルタ条件をご確認ください）。</p>;
-  }
-
-  // ── ドメイン（年範囲）とスケール ──────────────────────
-  const years = lanes.flatMap((l) => [l.start, l.end]);
+  const hasData = lanes.length > 0;
+  const years = hasData ? lanes.flatMap((l) => [l.start, l.end]) : [0, 1];
   const rawMin = Math.min(...years);
   const rawMax = Math.max(...years);
   const pad = Math.max(5, Math.round((rawMax - rawMin) * 0.04));
-  const minYear = rawMin - pad;
-  const maxYear = rawMax + pad;
+  const domainMin = rawMin - pad;
+  const domainMax = rawMax + pad;
+  const fullSpan = domainMax - domainMin;
 
-  const xScale = makeYearScale(minYear, maxYear, CHART_W);
+  // 最新の view を listener から参照するための ref
+  const viewRef = useRef<View | null>(view);
+  viewRef.current = view;
+
+  // domain（データ/フィルタ）変化時は表示範囲を全体にリセット
+  useEffect(() => {
+    setView({ start: domainMin, end: domainMax });
+  }, [domainMin, domainMax]);
+
+  const clampView = (start: number, end: number): View => {
+    const span = clamp(end - start, MIN_SPAN, fullSpan);
+    let s = start;
+    let e = start + span;
+    if (s < domainMin) { s = domainMin; e = s + span; }
+    if (e > domainMax) { e = domainMax; s = e - span; }
+    if (s < domainMin) s = domainMin;
+    return { start: s, end: e };
+  };
+
+  const zoomAround = (focusYear: number, factor: number) => {
+    const cur = viewRef.current ?? { start: domainMin, end: domainMax };
+    const curSpan = cur.end - cur.start;
+    const newSpan = clamp(curSpan * factor, MIN_SPAN, fullSpan);
+    const frac = curSpan === 0 ? 0.5 : (focusYear - cur.start) / curSpan;
+    const s = focusYear - frac * newSpan;
+    setView(clampView(s, s + newSpan));
+  };
+
+  // ホイールズーム（ページスクロールを止めるため native・非passive で登録）
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = svg.getBoundingClientRect();
+      const px = clamp(e.clientX - rect.left - GUTTER, 0, CHART_W);
+      const cur = viewRef.current ?? { start: domainMin, end: domainMax };
+      const focus = makeYearScale(cur.start, cur.end, CHART_W).invert(px);
+      zoomAround(focus, e.deltaY > 0 ? 1.15 : 0.87);
+    };
+    svg.addEventListener("wheel", onWheel, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheel);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainMin, domainMax]);
+
+  if (!hasData) {
+    return <p className="text-sm text-gray-500">表示できるデータがありません（フィルタ条件をご確認ください）。</p>;
+  }
+
+  const eff: View = view ?? { start: domainMin, end: domainMax };
+  const xScale = makeYearScale(eff.start, eff.end, CHART_W);
   const x = (year: number) => GUTTER + xScale(year);
+  const zoomed = eff.end - eff.start < fullSpan - 0.5;
 
-  // キャラ層 → 出来事層の順に、レイヤー内では開始年で並べる
   const ordered = [...lanes].sort((a, b) => {
     if (a.layer !== b.layer) return a.layer === "character" ? -1 : 1;
     return a.start - b.start;
@@ -115,151 +157,152 @@ export default function GanttChart({ calendars, characters, events, calendarId }
 
   const totalW = GUTTER + CHART_W + RIGHT_PAD;
   const totalH = HEADER_H + ordered.length * ROW_H + 8;
-  const ticks = yearTicks(minYear, maxYear);
+  const ticks = yearTicks(eff.start, eff.end);
 
-  function onRowMove(lane: Lane, e: React.MouseEvent) {
+  // ── パン（ドラッグ） ─────────────────────────────────
+  const onDown = (e: React.MouseEvent) => {
+    if (e.clientX - (svgRef.current?.getBoundingClientRect().left ?? 0) < GUTTER) return; // ラベル列では開始しない
+    dragRef.current = { active: true, lastX: e.clientX };
+    setDragging(true);
+    setHover(null);
+  };
+  const onMove = (e: React.MouseEvent) => {
+    if (!dragRef.current.active) return;
+    const dx = e.clientX - dragRef.current.lastX;
+    dragRef.current.lastX = e.clientX;
+    const cur = viewRef.current ?? eff;
+    const dy = -dx * ((cur.end - cur.start) / CHART_W);
+    setView(clampView(cur.start + dy, cur.end + dy));
+  };
+  const endDrag = () => {
+    if (dragRef.current.active) {
+      dragRef.current.active = false;
+      setDragging(false);
+    }
+  };
+
+  const onRowMove = (lane: Lane, e: React.MouseEvent) => {
+    if (dragRef.current.active) return;
     const rect = wrapperRef.current?.getBoundingClientRect();
     if (!rect) return;
     setHover({ lane, x: e.clientX - rect.left, y: e.clientY - rect.top });
-  }
+  };
 
   const wrapperW = wrapperRef.current?.clientWidth ?? totalW;
   const tipOnRight = hover ? hover.x > wrapperW / 2 : false;
+  const clipId = "gantt-chart-clip";
 
   return (
     <div ref={wrapperRef} className="relative">
+      {/* ツールバー */}
+      <div className="mb-2 flex items-center gap-2">
+        <div className="inline-flex overflow-hidden rounded-md border border-gray-200">
+          <button type="button" onClick={() => zoomAround((eff.start + eff.end) / 2, 1.4)} className="px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-50" aria-label="縮小">−</button>
+          <button type="button" onClick={() => setView({ start: domainMin, end: domainMax })} className="border-x border-gray-200 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50">全体</button>
+          <button type="button" onClick={() => zoomAround((eff.start + eff.end) / 2, 0.7)} className="px-2.5 py-1 text-sm text-gray-600 hover:bg-gray-50" aria-label="拡大">＋</button>
+        </div>
+        <span className="text-xs text-gray-400">ドラッグで移動 / ホイールで拡大縮小{zoomed ? "（拡大中）" : ""}</span>
+      </div>
+
       <div className="w-full overflow-x-auto">
         <svg
+          ref={svgRef}
           width={totalW}
           height={totalH}
           viewBox={`0 0 ${totalW} ${totalH}`}
           role="img"
           aria-label="ワンピース年表 Gantt チャート"
-          className="min-w-full font-sans"
+          className="min-w-full font-sans select-none"
+          style={{ cursor: dragging ? "grabbing" : "grab" }}
+          onMouseDown={onDown}
+          onMouseMove={onMove}
+          onMouseUp={endDrag}
+          onMouseLeave={() => { endDrag(); setHover(null); }}
         >
-          {/* 年目盛りの縦グリッド */}
-          {ticks.map((t) => (
-            <g key={`tick-${t}`}>
-              <line x1={x(t)} y1={HEADER_H - 8} x2={x(t)} y2={totalH} stroke="#e5e7eb" strokeWidth={1} />
-              <text x={x(t)} y={HEADER_H - 14} textAnchor="middle" fontSize={11} fill="#6b7280">
-                {formatYear(t, calendar)}
-              </text>
-            </g>
-          ))}
+          <defs>
+            <clipPath id={clipId}>
+              <rect x={GUTTER} y={0} width={CHART_W + RIGHT_PAD} height={totalH} />
+            </clipPath>
+          </defs>
 
-          {/* 暦名の見出し */}
-          <text x={GUTTER} y={16} fontSize={11} fill="#9ca3af">
-            {calendar.name}（年）→
-          </text>
-
-          {/* 行 */}
+          {/* 行の背景 / 当たり判定（ラベル列含む・clipなし） */}
           {ordered.map((lane, i) => {
             const y = HEADER_H + i * ROW_H;
-            const barY = y + (ROW_H - BAR_H) / 2;
-            const isPoint = lane.start === lane.end;
-            const x1 = x(lane.start);
-            const x2 = x(lane.open ? maxYear : lane.end);
-            const color = LAYER_COLOR[lane.layer];
-            const rangeLabel = isPoint
-              ? formatYear(lane.start, calendar, lane.approximate)
-              : `${formatYear(lane.start, calendar, lane.approximate)}–${lane.open ? "現在" : formatYear(lane.end, calendar)}`;
             const active = hover?.lane.key === lane.key;
-
             return (
-              <g
-                key={lane.key}
-                onMouseMove={(e) => onRowMove(lane, e)}
-                onMouseLeave={() => setHover(null)}
-                style={{ cursor: "pointer" }}
-              >
-                {/* 行の背景（ホバー時ハイライト / 偶数行の薄い縞）＝当たり判定も兼ねる */}
-                <rect
-                  x={0}
-                  y={y}
-                  width={totalW}
-                  height={ROW_H}
-                  fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"}
-                />
-                {/* 左ラベル */}
-                <text x={12} y={y + ROW_H / 2 + 4} fontSize={12} fill="#111827">
-                  {truncate(lane.label)}
-                </text>
-
-                {isPoint ? (
-                  // 点イベント: ダイヤ型マーカー
-                  <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
-                    <rect
-                      x={-BAR_H / 2}
-                      y={-BAR_H / 2}
-                      width={BAR_H}
-                      height={BAR_H}
-                      transform="rotate(45)"
-                      fill={color}
-                      opacity={active ? 1 : 0.85}
-                    />
-                  </g>
-                ) : (
-                  // 範囲バー
-                  <rect
-                    x={x1}
-                    y={barY}
-                    width={Math.max(2, x2 - x1)}
-                    height={BAR_H}
-                    rx={4}
-                    fill={color}
-                    opacity={lane.layer === "event" ? 0.35 + lane.importance * 0.12 : 0.85}
-                    stroke={active ? "#1e3a8a" : "none"}
-                    strokeWidth={active ? 1.5 : 0}
-                  />
-                )}
-                {/* 存命/進行中の「→現在」矢印 */}
-                {lane.open && (
-                  <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={color}>
-                    →現在
-                  </text>
-                )}
-                {/* 年ラベル（範囲はバー右。open は矢印を出すため省略） */}
-                {!lane.open && (
-                  <text
-                    x={(isPoint ? x1 + BAR_H : x2) + 6}
-                    y={barY + BAR_H - 3}
-                    fontSize={10}
-                    fill="#6b7280"
-                  >
-                    {rangeLabel}
-                  </text>
-                )}
+              <g key={`bg-${lane.key}`} onMouseMove={(e) => onRowMove(lane, e)} style={{ cursor: dragging ? "grabbing" : "pointer" }}>
+                <rect x={0} y={y} width={totalW} height={ROW_H} fill={active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
+                <text x={12} y={y + ROW_H / 2 + 4} fontSize={12} fill="#111827">{truncate(lane.label)}</text>
               </g>
             );
           })}
 
-          {/* ガター境界線 */}
+          {/* 目盛り + バー（chart 領域に clip） */}
+          <g clipPath={`url(#${clipId})`}>
+            {ticks.map((t) => (
+              <g key={`tick-${t}`}>
+                <line x1={x(t)} y1={HEADER_H - 8} x2={x(t)} y2={totalH} stroke="#e5e7eb" strokeWidth={1} />
+                <text x={x(t)} y={HEADER_H - 14} textAnchor="middle" fontSize={11} fill="#6b7280">{formatYear(t, calendar)}</text>
+              </g>
+            ))}
+
+            {ordered.map((lane, i) => {
+              const y = HEADER_H + i * ROW_H;
+              const barY = y + (ROW_H - BAR_H) / 2;
+              const isPoint = lane.start === lane.end;
+              const x1 = x(lane.start);
+              const x2 = x(lane.open ? eff.end : lane.end);
+              const color = LAYER_COLOR[lane.layer];
+              const active = hover?.lane.key === lane.key;
+              const rangeLabel = isPoint
+                ? formatYear(lane.start, calendar, lane.approximate)
+                : `${formatYear(lane.start, calendar, lane.approximate)}–${lane.open ? "現在" : formatYear(lane.end, calendar)}`;
+              return (
+                <g key={`bar-${lane.key}`} style={{ pointerEvents: "none" }}>
+                  {isPoint ? (
+                    <g transform={`translate(${x1}, ${barY + BAR_H / 2})`}>
+                      <rect x={-BAR_H / 2} y={-BAR_H / 2} width={BAR_H} height={BAR_H} transform="rotate(45)" fill={color} opacity={active ? 1 : 0.85} />
+                    </g>
+                  ) : (
+                    <rect
+                      x={x1}
+                      y={barY}
+                      width={Math.max(2, x2 - x1)}
+                      height={BAR_H}
+                      rx={4}
+                      fill={color}
+                      opacity={lane.layer === "event" ? 0.35 + lane.importance * 0.12 : 0.85}
+                      stroke={active ? "#1e3a8a" : "none"}
+                      strokeWidth={active ? 1.5 : 0}
+                    />
+                  )}
+                  {lane.open && <text x={x2 + 6} y={barY + BAR_H - 3} fontSize={10} fill={color}>→現在</text>}
+                  {!lane.open && (
+                    <text x={(isPoint ? x1 + BAR_H : x2) + 6} y={barY + BAR_H - 3} fontSize={10} fill="#6b7280">{rangeLabel}</text>
+                  )}
+                </g>
+              );
+            })}
+          </g>
+
           <line x1={GUTTER} y1={HEADER_H - 8} x2={GUTTER} y2={totalH} stroke="#d1d5db" strokeWidth={1} />
+          <text x={GUTTER} y={16} fontSize={11} fill="#9ca3af">{calendar.name}（年）→</text>
         </svg>
       </div>
 
       {/* ホバー・ツールチップ */}
-      {hover && (
+      {hover && !dragging && (
         <div
           className="pointer-events-none absolute z-10 w-64 rounded-md border border-gray-200 bg-white p-3 text-xs shadow-lg"
-          style={{
-            left: hover.x + (tipOnRight ? -12 : 12),
-            top: hover.y + 12,
-            transform: tipOnRight ? "translateX(-100%)" : "none",
-          }}
+          style={{ left: hover.x + (tipOnRight ? -12 : 12), top: hover.y + 12, transform: tipOnRight ? "translateX(-100%)" : "none" }}
         >
           <div className="mb-1 flex items-center gap-2">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-sm"
-              style={{ background: LAYER_COLOR[hover.lane.layer] }}
-            />
+            <span className="inline-block h-2.5 w-2.5 rounded-sm" style={{ background: LAYER_COLOR[hover.lane.layer] }} />
             <span className="font-semibold text-gray-900">{hover.lane.label}</span>
           </div>
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
             <span>{LAYER_LABEL[hover.lane.layer]}</span>
-            {hover.lane.layer === "event" && hover.lane.category && (
-              <span>{hover.lane.category}</span>
-            )}
+            {hover.lane.layer === "event" && hover.lane.category && <span>{hover.lane.category}</span>}
             {hover.lane.layer === "event" && (
               <span title={`重要度 ${hover.lane.importance}/5`}>
                 {"★".repeat(hover.lane.importance)}
@@ -270,14 +313,10 @@ export default function GanttChart({ calendars, characters, events, calendarId }
           <div className="mb-1 font-medium text-gray-700">
             {hover.lane.start === hover.lane.end
               ? formatYear(hover.lane.start, calendar, hover.lane.approximate)
-              : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${
-                  hover.lane.open ? "現在" : formatYear(hover.lane.end, calendar)
-                }`}
+              : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${hover.lane.open ? "現在" : formatYear(hover.lane.end, calendar)}`}
             <span className="ml-1 text-gray-400">（{calendar.name}）</span>
           </div>
-          {hover.lane.description && (
-            <p className="text-gray-600">{hover.lane.description}</p>
-          )}
+          {hover.lane.description && <p className="text-gray-600">{hover.lane.description}</p>}
         </div>
       )}
 
