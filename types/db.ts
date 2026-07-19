@@ -16,7 +16,14 @@ export type Calendar = {
 
 export type Character = {
   id: number;
+  /** 呼び名（一般的に使われる名。例: ルフィ / ゴールド・ロジャー / ゾロ） */
   name: string;
+  /** 本名（フルネーム。例: モンキー・D・ルフィ / ゴール・D・ロジャー） */
+  full_name: string | null;
+  /** 作中で判明した隠れた本名（例: ゴール・D・エース / ヴィンスモーク・サンジ）。多くは null */
+  hidden_name: string | null;
+  /** 宿る別人格と思われる名（例: 解放の戦士ニカ）。多くは null */
+  persona: string | null;
   /** 異名（例: 海賊王） */
   epithet: string | null;
   birth_year: number | null;

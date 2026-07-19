@@ -44,6 +44,10 @@ type Lane = {
   subtitle?: string | null;
   /** この Lane が節目イベント（キャラ個別イベント）を表すか */
   isMilestone?: boolean;
+  /** キャラの本名・隠れた本名・宿る名（ツールチップ表示用） */
+  fullName?: string | null;
+  hiddenName?: string | null;
+  persona?: string | null;
 };
 
 type View = { start: number; end: number };
@@ -103,9 +107,10 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
   for (const ch of characters) {
     if (ch.birth_year == null) continue;
     charLanes.push({
-      key: `c-${ch.id}`, charId: ch.id, label: ch.epithet ? `${ch.name}（${ch.epithet}）` : ch.name,
+      key: `c-${ch.id}`, charId: ch.id, label: ch.name,
       start: ch.birth_year, end: ch.death_year ?? ch.birth_year, open: ch.death_year == null,
       layer: "character", importance: 3, approximate: ch.is_approximate, category: ch.epithet, description: ch.notes, orgs: ch.orgs,
+      fullName: ch.full_name, hiddenName: ch.hidden_name, persona: ch.persona,
       milestones: (ch.events ?? []).map((e) => ({ id: e.id, name: e.name, year: e.year, description: e.description })),
     });
   }
@@ -590,21 +595,24 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
           <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-gray-500">
             {hover.lane.isMilestone ? (
               <span>キャライベント・{hover.lane.subtitle}</span>
+            ) : hover.lane.layer === "character" ? (
+              <>
+                {hover.lane.fullName && hover.lane.fullName !== hover.lane.label && <span>{hover.lane.fullName}</span>}
+                {hover.lane.category ? <span>「{hover.lane.category}」</span> : (!hover.lane.fullName || hover.lane.fullName === hover.lane.label) && <span>キャラ</span>}
+              </>
             ) : (
               <>
-                <span>{LAYER_LABEL[hover.lane.layer]}</span>
-                {hover.lane.layer === "event" && hover.lane.category && (
+                <span>{LAYER_LABEL.event}</span>
+                {hover.lane.category && (
                   <span className="inline-flex items-center gap-1">
                     <CategoryIcon iconKey={hover.lane.icon} color={hover.lane.color ?? LAYER_COLOR.event} size={13} />
                     {hover.lane.category}
                   </span>
                 )}
-                {hover.lane.layer === "event" && (
-                  <span title={`重要度 ${hover.lane.importance}/5`}>
-                    {"★".repeat(hover.lane.importance)}
-                    <span className="text-gray-300">{"★".repeat(5 - hover.lane.importance)}</span>
-                  </span>
-                )}
+                <span title={`重要度 ${hover.lane.importance}/5`}>
+                  {"★".repeat(hover.lane.importance)}
+                  <span className="text-gray-300">{"★".repeat(5 - hover.lane.importance)}</span>
+                </span>
               </>
             )}
           </div>
@@ -616,6 +624,12 @@ export default function GanttChart({ calendars, characters, events, calendarId, 
                 : `${formatYear(hover.lane.start, calendar, hover.lane.approximate)} – ${formatYear(hover.lane.end, calendar)}`}
             <span className="ml-1 text-gray-400">（{calendar.name}）</span>
           </div>
+          {(hover.lane.hiddenName || hover.lane.persona) && (
+            <div className="mb-1 space-y-0.5">
+              {hover.lane.hiddenName && <div className="text-gray-500">隠し名: <span className="font-medium text-gray-700">{hover.lane.hiddenName}</span></div>}
+              {hover.lane.persona && <div className="text-gray-500">別名: <span className="font-medium text-gray-700">{hover.lane.persona}</span></div>}
+            </div>
+          )}
           {hover.lane.orgs && hover.lane.orgs.length > 0 && (
             <div className="mb-1 flex flex-wrap gap-1">
               {hover.lane.orgs.map((o, i) => (

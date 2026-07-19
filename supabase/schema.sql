@@ -14,14 +14,21 @@ create table if not exists calendars (
 -- キャラクターの生涯（birth/death は canonical整数年、null 可）
 create table if not exists characters (
   id             bigint generated always as identity primary key,
-  name           text not null,
-  epithet        text,
+  name           text not null,   -- 呼び名（一般的な名。例: ルフィ / ゴールド・ロジャー）
+  full_name      text,            -- 本名（フルネーム。例: モンキー・D・ルフィ）
+  hidden_name    text,            -- 作中で判明した隠れた本名（例: ゴール・D・エース）。多くは null
+  persona        text,            -- 宿る別人格と思われる名（例: 解放の戦士ニカ）。多くは null
+  epithet        text,            -- 異名（例: 海賊王）
   birth_year     integer,
   death_year     integer,
   is_approximate boolean not null default false,
   image_url      text,
   notes          text
 );
+-- 既存DBへの移行（列を後から追加）
+alter table characters add column if not exists full_name   text;
+alter table characters add column if not exists hidden_name text;
+alter table characters add column if not exists persona     text;
 
 -- 出来事のカテゴリ（アイコン=絵文字 / 色）
 create table if not exists event_categories (
