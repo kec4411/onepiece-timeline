@@ -38,17 +38,11 @@ export default function TimelineView({ calendars, characters, events }: Props) {
       return next;
     });
 
-  // 組織（各キャラの主所属 orgs[0] から抽出）。グループ化/フィルタの基準。
-  const orgOptions = useMemo(() => {
-    const seen = new Map<string, string | null>();
-    for (const c of characters) {
-      const p = c.orgs?.[0];
-      if (p && !seen.has(p.name)) seen.set(p.name, p.color);
-    }
-    return [...seen.entries()].map(([name, color]) => ({ name, color }));
-  }, [characters]);
-  const [hiddenOrgs, setHiddenOrgs] = useState<Set<string>>(new Set());
   const [groupByOrg, setGroupByOrg] = useState(false);
+
+  // 検索（キャラ名の各フィールド ＋ 所属組織名/役職 を対象に部分一致）
+  const [search, setSearch] = useState("");
+  const q = search.trim().toLowerCase();
 
   // キャラの表示順（id 配列。null=既定＝生年順）。名前ドラッグで更新。
   const [charOrder, setCharOrder] = useState<number[] | null>(null);
@@ -71,19 +65,15 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     });
   };
 
-  const toggleOrg = (name: string) =>
-    setHiddenOrgs((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-
-  // フィルタ適用（キャラは主所属で絞り込み。主所属が無いキャラは常に表示）
+  // 検索適用（キャラ名の各表記 ＋ 所属組織名/役職 のいずれかに部分一致）
   const filteredCharacters = showCharacters
     ? orderedCharacters.filter((c) => {
-        const p = c.orgs?.[0];
-        return !p || !hiddenOrgs.has(p.name);
+        if (!q) return true;
+        const hay = [c.name, c.full_name, c.hidden_name, c.persona, c.epithet, ...(c.orgs ?? []).flatMap((o) => [o.name, o.role])]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        return hay.includes(q);
       })
     : [];
   const filteredEvents = showEvents
@@ -94,6 +84,42 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     <div>
       {/* コントロールバー */}
       <div className="mb-4 flex flex-col gap-3 border-b border-gray-100 pb-4">
+        {/* 検索（キャラ名・組織） ＋ グループ化 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-sm text-gray-500">検索</span>
+          <div className="relative w-full max-w-xs">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="キャラ名・組織・役職…"
+              className="w-full rounded-md border border-gray-300 px-3 py-1.5 pr-8 text-sm outline-none focus:border-blue-400"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                aria-label="クリア"
+                className="absolute right-2 top-1/2 -translate-y-1/2 leading-none text-gray-400 hover:text-gray-700"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          {q && <span className="text-xs text-gray-400">{filteredCharacters.length}件</span>}
+          <button
+            type="button"
+            onClick={() => setGroupByOrg((v) => !v)}
+            aria-pressed={groupByOrg}
+            className={
+              "ml-auto rounded-md border px-3 py-1 text-sm transition-colors " +
+              (groupByOrg ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-500 hover:text-gray-800")
+            }
+          >
+            {groupByOrg ? "✓ " : ""}組織でグループ化
+          </button>
+        </div>
+
         {/* 暦切替 */}
         {calendars.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
@@ -144,28 +170,6 @@ export default function TimelineView({ calendars, characters, events }: Props) {
           </div>
         )}
 
-        {/* 組織フィルタ ＋ グループ化トグル（キャラ表示時のみ） */}
-        {showCharacters && orgOptions.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="w-16 text-sm text-gray-500">組織</span>
-            {orgOptions.map((o) => (
-              <Chip key={o.name} active={!hiddenOrgs.has(o.name)} color={o.color ?? undefined} onClick={() => toggleOrg(o.name)}>
-                {o.name}
-              </Chip>
-            ))}
-            <button
-              type="button"
-              onClick={() => setGroupByOrg((v) => !v)}
-              aria-pressed={groupByOrg}
-              className={
-                "ml-auto rounded-md border px-3 py-1 text-sm transition-colors " +
-                (groupByOrg ? "border-blue-300 bg-blue-50 text-blue-700" : "border-gray-200 text-gray-500 hover:text-gray-800")
-              }
-            >
-              {groupByOrg ? "✓ " : ""}組織でグループ化
-            </button>
-          </div>
-        )}
       </div>
 
       <GanttChart
