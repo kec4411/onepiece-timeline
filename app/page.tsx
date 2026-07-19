@@ -1,4 +1,4 @@
-import GanttChart from "@/components/GanttChart";
+import TimelineView from "@/components/TimelineView";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { seedCalendars, seedCharacters, seedEvents } from "@/lib/seed";
 import type { Calendar, Character, EventRow } from "@/types/db";
@@ -57,7 +57,7 @@ export default async function Home() {
       )}
 
       <section className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
-        <GanttChart calendars={calendars} characters={characters} events={events} />
+        <TimelineView calendars={calendars} characters={characters} events={events} />
       </section>
 
       <footer className="mt-6 text-xs text-gray-400">
