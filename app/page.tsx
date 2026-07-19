@@ -1,39 +1,64 @@
 import TimelineView from "@/components/TimelineView";
-import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
+import { getPool } from "@/lib/db";
 import { seedCalendars, seedCharacters, seedEvents } from "@/lib/seed";
 import type { Calendar, Character, EventRow } from "@/types/db";
 
 // 常に最新を読む（キャッシュしない）。MVP では十分。
 export const dynamic = "force-dynamic";
 
-async function loadData(): Promise<{
-  calendars: Calendar[];
-  characters: Character[];
-  events: EventRow[];
-  source: "supabase" | "seed";
-}> {
+type Source = "postgres" | "supabase" | "seed";
+type Loaded = { calendars: Calendar[]; characters: Character[]; events: EventRow[]; source: Source };
+
+const seed: Loaded = {
+  calendars: seedCalendars,
+  characters: seedCharacters,
+  events: seedEvents,
+  source: "seed",
+};
+
+// データ取得の優先順位: ローカル Postgres(DATABASE_URL) → Supabase → seed。
+async function loadData(): Promise<Loaded> {
+  // 1) ローカル Docker の PostgreSQL（pg で直接接続）
+  const pool = getPool();
+  if (pool) {
+    try {
+      const [cal, chars, evs] = await Promise.all([
+        pool.query("select * from calendars order by id"),
+        pool.query("select * from characters order by birth_year"),
+        pool.query("select * from events order by start_year"),
+      ]);
+      return {
+        calendars: cal.rows as Calendar[],
+        characters: chars.rows as Character[],
+        events: evs.rows as EventRow[],
+        source: "postgres",
+      };
+    } catch (e) {
+      console.error("[loadData] Postgres 取得に失敗、次のソースへフォールバック:", e);
+    }
+  }
+
+  // 2) Supabase（本番）
   const supabase = getSupabase();
-  if (!supabase) {
-    return { calendars: seedCalendars, characters: seedCharacters, events: seedEvents, source: "seed" };
+  if (supabase) {
+    const [cal, chars, evs] = await Promise.all([
+      supabase.from("calendars").select("*").order("id"),
+      supabase.from("characters").select("*").order("birth_year"),
+      supabase.from("events").select("*").order("start_year"),
+    ]);
+    if (!cal.error && !chars.error && !evs.error) {
+      return {
+        calendars: cal.data as Calendar[],
+        characters: chars.data as Character[],
+        events: evs.data as EventRow[],
+        source: "supabase",
+      };
+    }
   }
 
-  const [cal, chars, evs] = await Promise.all([
-    supabase.from("calendars").select("*").order("id"),
-    supabase.from("characters").select("*").order("birth_year"),
-    supabase.from("events").select("*").order("start_year"),
-  ]);
-
-  // 取得に失敗（テーブル未作成など）した場合もシードにフォールバックして画面を保つ
-  if (cal.error || chars.error || evs.error) {
-    return { calendars: seedCalendars, characters: seedCharacters, events: seedEvents, source: "seed" };
-  }
-
-  return {
-    calendars: cal.data as Calendar[],
-    characters: chars.data as Character[],
-    events: evs.data as EventRow[],
-    source: "supabase",
-  };
+  // 3) ローカルサンプル
+  return seed;
 }
 
 export default async function Home() {
@@ -50,9 +75,8 @@ export default async function Home() {
 
       {source === "seed" && (
         <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {isSupabaseConfigured
-            ? "Supabase からの取得に失敗したため、サンプルデータを表示しています（テーブル未作成の可能性）。"
-            : "Supabase 未接続のため、サンプルデータを表示しています。.env.local を設定すると DB のデータに切り替わります。"}
+          DB 未接続のため、サンプルデータを表示しています。ローカルは <code>npm run dev</code>（Docker/PostgreSQL 自動起動）、
+          本番は Supabase の環境変数を設定すると DB のデータに切り替わります。
         </div>
       )}
 
@@ -61,7 +85,7 @@ export default async function Home() {
       </section>
 
       <footer className="mt-6 text-xs text-gray-400">
-        データソース: {source === "supabase" ? "Supabase" : "ローカルサンプル"}
+        データソース: {source === "postgres" ? "ローカルDB (PostgreSQL)" : source === "supabase" ? "Supabase" : "ローカルサンプル"}
       </footer>
     </main>
   );

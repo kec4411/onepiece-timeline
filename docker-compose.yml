@@ -1,0 +1,25 @@
+# ローカル開発用の PostgreSQL。`npm run dev` から自動起動されます。
+# 初回起動時のみ schema.sql → seed.sql を自動投入します（データを入れ直したい場合は `npm run db:reset`）。
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: onepiece_timeline_db
+    environment:
+      POSTGRES_USER: onepiece
+      POSTGRES_PASSWORD: onepiece
+      POSTGRES_DB: onepiece_timeline
+    ports:
+      - "5432:5432"
+    volumes:
+      - opdata:/var/lib/postgresql/data
+      # 初回のみ実行（ファイル名の昇順 = schema → seed）
+      - ./supabase/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./supabase/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onepiece -d onepiece_timeline"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  opdata:
