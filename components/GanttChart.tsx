@@ -20,6 +20,8 @@ type Props = {
   pinnedOrgs?: Set<string>;
   onTogglePinChar?: (id: number) => void;
   onTogglePinOrg?: (name: string) => void;
+  /** キャラ行の×で表示から隠す（クライアント側の非表示） */
+  onHideChar?: (id: number) => void;
 };
 
 // キャラ領域の視覚的な行（グループ見出し or キャラのレーン）
@@ -67,6 +69,7 @@ const HIT_PX = 16; // 出来事バンドで最寄りイベントを拾う距離(
 const MILE_HIT_PX = 10; // キャラ行で節目マーカーを拾う距離(px)
 const MILESTONE_COLOR = "#1f2937"; // 節目マーカー（gray-800）
 const PIN_W = 22; // ガター左のピン留めアイコン領域(px)
+const DEL_W = 22; // ガター右端の非表示(×)領域(px)
 const PIN_COLOR = "#2563eb";
 
 // ピン留めアイコン（ガター左）。中心 (cx,cy) に 14x16 のロケーションピンを描く。
@@ -96,7 +99,7 @@ const dist = (a: Touch, b: Touch) => Math.hypot(a.clientX - b.clientX, a.clientY
 
 export default function GanttChart({
   calendars, characters, events, calendarId, groupByOrg = false, onReorderChar,
-  pinnedChars, pinnedOrgs, onTogglePinChar, onTogglePinOrg,
+  pinnedChars, pinnedOrgs, onTogglePinChar, onTogglePinOrg, onHideChar,
 }: Props) {
   const pinnedC = pinnedChars ?? EMPTY_NUM_SET;
   const pinnedO = pinnedOrgs ?? EMPTY_STR_SET;
@@ -331,6 +334,15 @@ export default function GanttChart({
     if (r.kind === "header") { onTogglePinOrg?.(r.name); return true; }
     return false;
   };
+  // ガター右端の×領域をタップ/クリックしたら該当キャラを非表示にする。
+  const hideAt = (clientX: number, clientY: number): boolean => {
+    if (!onHideChar) return false;
+    const relX = clientX - svgLeft();
+    if (relX < GUTTER - DEL_W || relX >= GUTTER) return false;
+    const r = rowAt(clientY);
+    if (r?.kind === "lane" && r.lane.charId != null) { onHideChar(r.lane.charId); return true; }
+    return false;
+  };
 
   actionsRef.current = {
     onWheel: (e) => {
@@ -373,6 +385,8 @@ export default function GanttChart({
       if (g.mode === "pan" && !g.moved) {
         e.preventDefault();
         if (togglePinAt(g.startX, g.startY)) {
+          setHover(null);
+        } else if (hideAt(g.startX, g.startY)) {
           setHover(null);
         } else if (g.lane && hover?.lane.key !== g.lane.key) {
           showTipAt(g.lane, g.startX, g.startY);
@@ -520,13 +534,15 @@ export default function GanttChart({
           const isDragged = reorderId != null && lane.charId === reorderId;
           const canReorder = Boolean(onReorderChar) && lane.charId != null && !isMobile;
           const canPin = Boolean(onTogglePinChar) && lane.charId != null;
+          const canHide = Boolean(onHideChar) && lane.charId != null;
           const charPinned = lane.charId != null && pinnedC.has(lane.charId);
           const labelX = (canPin ? PIN_W + 2 : 8) + (groupByOrg ? 10 : 0);
+          const labelMax = (groupByOrg ? labelChars - 3 : labelChars - 1) - (canHide ? 2 : 0);
           return (
             <g key={`bg-${lane.key}`}>
               <rect x={0} y={y} width={totalW} height={ROW_H} fill={isDragged ? "#e0e7ff" : active ? "#eff6ff" : i % 2 === 1 ? "#f9fafb" : "transparent"} />
               {canPin && <PinIcon cx={11} cy={cy} pinned={charPinned} />}
-              <text x={labelX} y={cy + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, groupByOrg ? labelChars - 3 : labelChars - 1)}</text>
+              <text x={labelX} y={cy + 4} fontSize={isMobile ? 11 : 12} fill="#111827">{truncate(lane.label, labelMax)}</text>
               {canReorder && (
                 <rect x={PIN_W} y={y} width={GUTTER - PIN_W} height={ROW_H} fill="transparent"
                   onMouseDown={(e) => startReorder(lane, e)} style={{ cursor: reorderId != null ? "grabbing" : "grab" }} />
@@ -534,6 +550,15 @@ export default function GanttChart({
               {canPin && (
                 <rect x={0} y={y} width={PIN_W} height={ROW_H} fill="transparent"
                   onMouseDown={(e) => { e.stopPropagation(); if (!isSyntheticMouse()) onTogglePinChar!(lane.charId!); }} style={{ cursor: "pointer" }} />
+              )}
+              {canHide && (
+                <g>
+                  <text x={GUTTER - DEL_W / 2} y={cy + 4} textAnchor="middle" fontSize={13} fill={active ? "#dc2626" : "#9ca3af"} style={{ pointerEvents: "none" }}>×</text>
+                  <rect x={GUTTER - DEL_W} y={y} width={DEL_W} height={ROW_H} fill="transparent"
+                    onMouseDown={(e) => { e.stopPropagation(); if (!isSyntheticMouse()) onHideChar!(lane.charId!); }} style={{ cursor: "pointer" }}>
+                    <title>この行を非表示</title>
+                  </rect>
+                </g>
               )}
             </g>
           );

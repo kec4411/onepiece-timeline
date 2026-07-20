@@ -51,6 +51,12 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     setPinnedChars((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const togglePinOrg = (name: string) =>
     setPinnedOrgs((prev) => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
+
+  // 非表示（クライアント側で画面から消す。リロードで復活。復元UIあり）
+  const [hiddenChars, setHiddenChars] = useState<Set<number>>(new Set());
+  const hideChar = (id: number) => setHiddenChars((prev) => { const n = new Set(prev); n.add(id); return n; });
+  const unhideChar = (id: number) => setHiddenChars((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  const unhideAll = () => setHiddenChars(new Set());
   const orgColor = (name: string) => {
     for (const c of characters) { const o = (c.orgs ?? []).find((o) => o.name === name); if (o) return o.color; }
     return null;
@@ -87,8 +93,10 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     return hay.includes(q);
   };
   const isPinned = (c: Character) => pinnedChars.has(c.id) || (c.orgs ?? []).some((o) => pinnedOrgs.has(o.name));
-  const filteredCharacters = showCharacters ? orderedCharacters.filter((c) => isPinned(c) || matchesSearch(c)) : [];
+  const visibleCharacters = orderedCharacters.filter((c) => !hiddenChars.has(c.id));
+  const filteredCharacters = showCharacters ? visibleCharacters.filter((c) => isPinned(c) || matchesSearch(c)) : [];
   const pinnedCharList = characters.filter((c) => pinnedChars.has(c.id));
+  const hiddenCharList = characters.filter((c) => hiddenChars.has(c.id));
   const filteredEvents = showEvents
     ? events.filter((e) => !e.category || !hiddenCategories.has(e.category.name))
     : [];
@@ -163,6 +171,32 @@ export default function TimelineView({ calendars, characters, events }: Props) {
           </div>
         )}
 
+        {/* 非表示中（クリックで復元。× で消したキャラ一覧） */}
+        {hiddenCharList.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="w-16 text-sm text-gray-500">非表示</span>
+            {hiddenCharList.map((c) => (
+              <button
+                key={`h-${c.id}`}
+                type="button"
+                onClick={() => unhideChar(c.id)}
+                title="クリックで再表示"
+                className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-sm text-gray-500 hover:text-gray-800"
+              >
+                <span className="text-gray-400">＋</span>
+                {c.name}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={unhideAll}
+              className="ml-1 rounded-md px-2 py-0.5 text-xs text-gray-400 underline hover:text-gray-700"
+            >
+              すべて再表示
+            </button>
+          </div>
+        )}
+
         {/* 暦切替 */}
         {calendars.length > 1 && (
           <div className="flex flex-wrap items-center gap-2">
@@ -226,6 +260,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
         pinnedOrgs={pinnedOrgs}
         onTogglePinChar={togglePinChar}
         onTogglePinOrg={togglePinOrg}
+        onHideChar={hideChar}
       />
     </div>
   );
