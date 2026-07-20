@@ -334,6 +334,9 @@ export default function GanttChart({
 
   actionsRef.current = {
     onWheel: (e) => {
+      // Ctrl（トラックパッドのピンチも ctrlKey）押下時のみ拡大縮小。
+      // 通常のスクロールはページスクロールに委ねる（preventDefault しない）。
+      if (!e.ctrlKey && !e.metaKey) return;
       e.preventDefault();
       const px = clamp(e.clientX - svgLeft() - GUTTER, 0, CHART_W);
       zoomAround(yearAtPx(px, eff), e.deltaY > 0 ? 1.15 : 0.87, eff);
