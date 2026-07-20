@@ -14,7 +14,10 @@
 
 /* MVP は明るいテーマ固定（ダーク対応は後続で検討） */
 body {
-  background: var(--background);
+  background-color: var(--background); /* 画像未読込時のフォールバック */
+  background-image: url("/background.png");
+  background-repeat: repeat; /* 必要な分だけ繰り返す＝タイル */
+  background-size: auto; /* 原寸(1408×768)でタイル */
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
