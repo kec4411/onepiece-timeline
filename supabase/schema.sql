@@ -23,12 +23,14 @@ create table if not exists characters (
   death_year     integer,
   is_approximate boolean not null default false,
   image_url      text,
-  notes          text
+  notes          text,
+  is_featured    boolean not null default false  -- 初期表示（検索前）に出す主要キャラ
 );
 -- 既存DBへの移行（列を後から追加）
 alter table characters add column if not exists full_name   text;
 alter table characters add column if not exists hidden_name text;
 alter table characters add column if not exists persona     text;
+alter table characters add column if not exists is_featured boolean not null default false;
 
 -- 出来事のカテゴリ（アイコン=絵文字 / 色）
 create table if not exists event_categories (

@@ -110,7 +110,10 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 17, event_id: 43, sort_order: 1 },
 ];
 
-export const seedCharacters: Character[] = [
+// 初期表示（検索前）に出す主要キャラの id: 麦わらの一味10 ＋ ロジャー(1)/シャンクス(6)/ガープ(3)/ドラゴン(18)/ロックス(24)
+const FEATURED_IDS = new Set([1, 3, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24]);
+
+export const seedCharacters: Character[] = ([
   { id: 1, name: "ゴールド・ロジャー", full_name: "ゴール・D・ロジャー", hidden_name: null, persona: null, epithet: "海賊王", birth_year: 1447, death_year: 1500, is_approximate: true, image_url: null, notes: "唯一ひとつなぎの大秘宝に到達した海賊王。享年53。" },
   { id: 2, name: "レイリー", full_name: "シルバーズ・レイリー", hidden_name: null, persona: null, epithet: "冥王", birth_year: 1446, death_year: null, is_approximate: false, image_url: null, notes: "ロジャー海賊団副船長。ルフィに覇気を指南。" },
   { id: 3, name: "ガープ", full_name: "モンキー・D・ガープ", hidden_name: null, persona: null, epithet: "海軍の英雄", birth_year: 1446, death_year: null, is_approximate: true, image_url: null, notes: "ロジャーを幾度も追い詰めた英雄。ルフィの祖父。" },
@@ -147,7 +150,7 @@ export const seedCharacters: Character[] = [
   { id: 34, name: "バーベル", full_name: "バーベル", hidden_name: null, persona: null, epithet: null, birth_year: 1460, death_year: null, is_approximate: true, image_url: null, notes: "ロックス創設メンバーのナマズの魚人。" },
   { id: 35, name: "銀斧", full_name: "凶", hidden_name: null, persona: null, epithet: "銀斧", birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "ハチノス制圧後にロックスへ加入した元殺し屋。" },
   { id: 36, name: "グロリオーサ", full_name: "グロリオーサ", hidden_name: null, persona: null, epithet: "ニョン婆", birth_year: 1440, death_year: null, is_approximate: true, image_url: null, notes: "元アマゾン・リリー皇帝。現在は同島の長老。" },
-];
+] as Omit<Character, "is_featured">[]).map((c) => ({ ...c, is_featured: FEATURED_IDS.has(c.id) }));
 
 export const seedEventCategories: EventCategory[] = [
   { id: 1, name: "時代", icon: "hourglass", color: "#6b7280", sort_order: 1 },

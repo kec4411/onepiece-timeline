@@ -66,6 +66,12 @@ insert into characters (name, full_name, hidden_name, persona, epithet, birth_ye
   ('銀斧',       '凶',                   null, null, '銀斧',            1450, null, true,  'ハチノス制圧後にロックスへ加入した元殺し屋。'),
   ('グロリオーサ', 'グロリオーサ',        null, null, 'ニョン婆',        1440, null, true,  '元アマゾン・リリー皇帝。現在は同島の長老。');
 
+-- 初期表示（検索前）に出す主要キャラ: 麦わらの一味 ＋ ロジャー/シャンクス/ガープ/ドラゴン/ロックス
+update characters set is_featured = true where name in (
+  'ルフィ','ゾロ','ナミ','ウソップ','サンジ','チョッパー','ロビン','フランキー','ブルック','ジンベエ',
+  'ゴールド・ロジャー','シャンクス','ガープ','ドラゴン','ロックス'
+);
+
 -- 出来事（範囲は start/end、点イベントは end を null。category_id は event_categories の id）
 insert into events (name, description, start_year, end_year, is_approximate, category_id, importance) values
   ('空白の100年',                    '世界政府に歴史から抹消された謎の100年間。',              624, 724,  false, 1, 5),

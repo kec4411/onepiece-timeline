@@ -31,6 +31,8 @@ export type Character = {
   is_approximate: boolean;
   image_url: string | null;
   notes: string | null;
+  /** 初期表示（検索前）に出す主要キャラか。麦わらの一味＋主要人物。DB列 is_featured。 */
+  is_featured: boolean;
   /** 取得時に junction を結合して付与する所属組織（DB列ではない派生データ） */
   orgs?: CharacterOrg[];
   /** 取得時に付与するキャラ個別イベント（人生の節目。events + character_events から導出） */

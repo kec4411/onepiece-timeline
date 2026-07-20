@@ -93,8 +93,12 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     return hay.includes(q);
   };
   const isPinned = (c: Character) => pinnedChars.has(c.id) || (c.orgs ?? []).some((o) => pinnedOrgs.has(o.name));
+  // 初期表示（検索前）は主要キャラ(is_featured)のみ。ピン留めしたキャラは常に表示。
+  // フォールバック: featured が1件も無い（DB未移行など）場合は従来どおり全キャラ表示。
+  const anyFeatured = characters.some((c) => c.is_featured);
+  const baseVisible = (c: Character) => (q ? matchesSearch(c) : anyFeatured ? c.is_featured : true);
   const visibleCharacters = orderedCharacters.filter((c) => !hiddenChars.has(c.id));
-  const filteredCharacters = showCharacters ? visibleCharacters.filter((c) => isPinned(c) || matchesSearch(c)) : [];
+  const filteredCharacters = showCharacters ? visibleCharacters.filter((c) => isPinned(c) || baseVisible(c)) : [];
   const pinnedCharList = characters.filter((c) => pinnedChars.has(c.id));
   const hiddenCharList = characters.filter((c) => hiddenChars.has(c.id));
   const filteredEvents = showEvents
@@ -127,7 +131,11 @@ export default function TimelineView({ calendars, characters, events }: Props) {
               </button>
             )}
           </div>
-          {q && <span className="text-xs text-gray-400">{filteredCharacters.length}件</span>}
+          {q ? (
+            <span className="text-xs text-gray-400">{filteredCharacters.length}件</span>
+          ) : (
+            anyFeatured && <span className="text-xs text-gray-400">初期表示は主要キャラのみ（検索・ピンで追加）</span>
+          )}
           <button
             type="button"
             onClick={() => setGroupByOrg((v) => !v)}
