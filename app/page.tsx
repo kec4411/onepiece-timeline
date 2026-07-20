@@ -124,27 +124,32 @@ export default async function Home() {
   const showDataSource = process.env.VERCEL_ENV !== "production";
 
   return (
-    <main className="w-full px-4 py-8 sm:px-6 sm:py-10">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">ONE PIECE 年表</h1>
+    <>
+      {/* 全幅ヘッダーバー（半透明白＋ぼかし＋下線/影で背景から分離） */}
+      <header className="sticky top-0 z-20 border-b border-gray-200 bg-white/85 shadow-sm backdrop-blur-sm">
+        <div className="px-4 py-4 sm:px-6">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">ONE PIECE 年表</h1>
+        </div>
       </header>
 
-      {source === "seed" && (
-        <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          DB 未接続のため、サンプルデータを表示しています。ローカルは <code>npm run dev</code>（Docker/PostgreSQL 自動起動）、
-          本番は Supabase の環境変数を設定すると DB のデータに切り替わります。
-        </div>
-      )}
+      <main className="w-full px-4 py-8 sm:px-6 sm:py-10">
+        {source === "seed" && (
+          <div className="mb-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            DB 未接続のため、サンプルデータを表示しています。ローカルは <code>npm run dev</code>（Docker/PostgreSQL 自動起動）、
+            本番は Supabase の環境変数を設定すると DB のデータに切り替わります。
+          </div>
+        )}
 
-      <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
-        <TimelineView calendars={calendars} characters={characters} events={events} />
-      </section>
+        <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
+          <TimelineView calendars={calendars} characters={characters} events={events} />
+        </section>
 
-      {showDataSource && (
-        <footer className="mt-6 text-xs text-gray-400">
-          データソース: {source === "postgres" ? "ローカルDB (PostgreSQL)" : source === "supabase" ? "Supabase" : "ローカルサンプル"}
-        </footer>
-      )}
-    </main>
+        {showDataSource && (
+          <footer className="mt-6 text-xs text-gray-400">
+            データソース: {source === "postgres" ? "ローカルDB (PostgreSQL)" : source === "supabase" ? "Supabase" : "ローカルサンプル"}
+          </footer>
+        )}
+      </main>
+    </>
   );
 }
