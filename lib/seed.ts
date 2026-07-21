@@ -25,6 +25,16 @@ export const seedOrganizations: Organization[] = [
   { id: 10, name: "ビッグマム海賊団", kind: "海賊団", description: "四皇ビッグ・マム率いる海賊団。", color: "#db2777" },
   { id: 11, name: "百獣海賊団", kind: "海賊団", description: "四皇カイドウ率いる海賊団。", color: "#4338ca" },
   { id: 12, name: "神の騎士団", kind: "勢力", description: "世界政府直属、天竜人で構成される謎の武力組織。ガーリング／シャムロックが率いる。", color: "#ca8a04" },
+  { id: 13, name: "クロスギルド", kind: "海賊団", description: "バギー・ミホーク・クロコダイルが率いる海賊/賞金稼ぎ組織。バギーは四皇の一人。", color: "#7f1d1d" },
+  { id: 14, name: "黒ひげ海賊団", kind: "海賊団", description: "四皇・黒ひげティーチ率いる海賊団。", color: "#111827" },
+  { id: 15, name: "ドンキホーテファミリー", kind: "海賊団", description: "ドフラミンゴ率いる元王下七武海の海賊。ドレスローザを支配した。", color: "#a21caf" },
+  { id: 16, name: "九蛇海賊団", kind: "海賊団", description: "ハンコック率いるアマゾン・リリーの女海賊団。", color: "#ec4899" },
+  { id: 17, name: "アラバスタ王国", kind: "勢力", description: "ネフェルタリ家が治める砂の王国。", color: "#92400e" },
+  { id: 18, name: "アーロン一味", kind: "海賊団", description: "アーロン率いる魚人海賊団。東の海を荒らした。", color: "#0e7490" },
+  { id: 19, name: "スリラーバーク海賊団", kind: "海賊団", description: "ゲッコー・モリア率いる海賊団。", color: "#5b21b6" },
+  { id: 20, name: "シャンディア", kind: "勢力", description: "ジャヤ／空島の黄金郷を守る戦士の一族。", color: "#4d7c0f" },
+  { id: 21, name: "ルブニール王国", kind: "勢力", description: "ノーランドが仕えた北の海の王国。", color: "#0369a1" },
+  { id: 22, name: "王下七武海", kind: "勢力", description: "世界政府公認の海賊。海の均衡を担わせた制度（現在は撤廃）。歴代の実力者が名を連ねた。", color: "#334155" },
 ];
 
 export const seedCharacterOrganizations: CharacterOrganization[] = [
@@ -76,6 +86,29 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 35, organization_id: 9, role: "船員", sort_order: 0 },
   { character_id: 36, organization_id: 9, role: "船員", sort_order: 0 },
   { character_id: 4, organization_id: 9, role: "見習い", sort_order: 1 },
+  // 追加キャラの所属（character_id 37..47 / organization_id 13..21）
+  { character_id: 37, organization_id: 13, role: "代表", sort_order: 0 },
+  { character_id: 37, organization_id: 1, role: "見習い", sort_order: 1 },
+  { character_id: 38, organization_id: 13, role: "幹部", sort_order: 0 },
+  { character_id: 39, organization_id: 18, role: "船長", sort_order: 0 },
+  { character_id: 40, organization_id: 17, role: "王女", sort_order: 0 },
+  { character_id: 41, organization_id: 13, role: "幹部", sort_order: 0 },
+  { character_id: 42, organization_id: 15, role: "会長", sort_order: 0 },
+  { character_id: 43, organization_id: 19, role: "船長", sort_order: 0 },
+  { character_id: 44, organization_id: 16, role: "船長", sort_order: 0 },
+  { character_id: 45, organization_id: 14, role: "提督", sort_order: 0 },
+  { character_id: 45, organization_id: 2, role: "傘下", sort_order: 1 },
+  { character_id: 46, organization_id: 21, role: "探検家", sort_order: 0 },
+  { character_id: 47, organization_id: 20, role: "大戦士", sort_order: 0 },
+  // 王下七武海（org 22）: 歴代メンバーを副所属として付与
+  { character_id: 38, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 41, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 42, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 43, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 44, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 45, organization_id: 22, role: "七武海", sort_order: 2 },
+  { character_id: 20, organization_id: 22, role: "七武海", sort_order: 1 },
+  { character_id: 17, organization_id: 22, role: "七武海", sort_order: 1 },
 ];
 
 // キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
@@ -162,6 +195,18 @@ export const seedCharacters: Character[] = ([
   { id: 34, name: "バーベル", full_name: "バーベル", hidden_name: null, persona: null, epithet: null, birth_year: 1460, death_year: null, is_approximate: true, image_url: null, notes: "ロックス創設メンバーのナマズの魚人。" },
   { id: 35, name: "銀斧", full_name: "凶", hidden_name: null, persona: null, epithet: "銀斧", birth_year: 1450, death_year: null, is_approximate: true, image_url: null, notes: "ハチノス制圧後にロックスへ加入した元殺し屋。" },
   { id: 36, name: "グロリオーサ", full_name: "グロリオーサ", hidden_name: null, persona: null, epithet: "ニョン婆", birth_year: 1440, death_year: null, is_approximate: true, image_url: null, notes: "元アマゾン・リリー皇帝。現在は同島の長老。" },
+  // 追加キャラ（id 37..47）
+  { id: 37, name: "バギー", full_name: "バギー", hidden_name: null, persona: null, epithet: "道化のバギー", birth_year: 1485, death_year: null, is_approximate: false, image_url: null, notes: "四皇の一人（クロスギルド）。元ロジャー海賊団の見習いで、シャンクスとは同期。" },
+  { id: 38, name: "ミホーク", full_name: "ジュラキュール・ミホーク", hidden_name: null, persona: null, epithet: "鷹の目", birth_year: 1481, death_year: null, is_approximate: false, image_url: null, notes: "世界最強の剣士。元王下七武海。現在はクロスギルドの一員。" },
+  { id: 39, name: "アーロン", full_name: "アーロン", hidden_name: null, persona: null, epithet: "ノコギリのアーロン", birth_year: 1483, death_year: null, is_approximate: false, image_url: null, notes: "東の海を荒らした魚人海賊。元タイヨウの海賊団。" },
+  { id: 40, name: "ビビ", full_name: "ネフェルタリ・ビビ", hidden_name: null, persona: null, epithet: null, birth_year: 1506, death_year: null, is_approximate: false, image_url: null, notes: "アラバスタ王国の王女。かつて麦わらの一味と旅した盟友。" },
+  { id: 41, name: "クロコダイル", full_name: "サー・クロコダイル", hidden_name: null, persona: null, epithet: "砂漠の王", birth_year: 1478, death_year: null, is_approximate: false, image_url: null, notes: "元王下七武海。バロックワークスを率いた。現クロスギルド共同経営者。" },
+  { id: 42, name: "ドフラミンゴ", full_name: "ドンキホーテ・ドフラミンゴ", hidden_name: null, persona: null, epithet: "天夜叉", birth_year: 1483, death_year: null, is_approximate: false, image_url: null, notes: "元王下七武海。元天竜人でドレスローザを支配。裏社会の仲介人「ジョーカー」。" },
+  { id: 43, name: "モリア", full_name: "ゲッコー・モリア", hidden_name: null, persona: null, epithet: null, birth_year: 1474, death_year: null, is_approximate: false, image_url: null, notes: "元王下七武海。カゲカゲの実の能力者。かつてカイドウに敗れ仲間を失った。" },
+  { id: 44, name: "ハンコック", full_name: "ボア・ハンコック", hidden_name: null, persona: null, epithet: "海賊女帝", birth_year: 1493, death_year: null, is_approximate: false, image_url: null, notes: "元王下七武海。九蛇海賊団船長でアマゾン・リリーの皇帝。" },
+  { id: 45, name: "ティーチ", full_name: "マーシャル・D・ティーチ", hidden_name: null, persona: null, epithet: "黒ひげ", birth_year: 1484, death_year: null, is_approximate: false, image_url: null, notes: "四皇の一人。ヤミヤミ＆グラグラの二つの実の力を持つ。元白ひげ海賊団。" },
+  { id: 46, name: "ノーランド", full_name: "モンブラン・ノーランド", hidden_name: null, persona: null, epithet: "嘘つきノーランド", birth_year: 1082, death_year: 1124, is_approximate: true, image_url: null, notes: "約400年前の北の海の探検家。ジャヤ島でカルガラと友情を結んだ。" },
+  { id: 47, name: "カルガラ", full_name: "カルガラ", hidden_name: null, persona: null, epithet: null, birth_year: 1090, death_year: 1130, is_approximate: true, image_url: null, notes: "約400年前のシャンドラの大戦士。ノーランドと友情を結び、黄金郷を守った。" },
 ] as Omit<Character, "is_featured">[]).map((c) => ({ ...c, is_featured: FEATURED_IDS.has(c.id) }));
 
 export const seedEventCategories: EventCategory[] = [
