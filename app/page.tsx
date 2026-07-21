@@ -142,6 +142,9 @@ export default async function Home() {
 
         <section className="overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm sm:p-4">
           <TimelineView calendars={calendars} characters={characters} events={events} />
+          <p className="mt-2 text-right text-xs text-gray-400">
+            ※このサイトの情報はAIで収集した情報を含みます。誤りがある可能性がありますのでご注意ください。
+          </p>
         </section>
 
         {showDataSource && (
