@@ -112,6 +112,12 @@ export default function GanttChart({
   const [hover, setHover] = useState<{ lane: Lane; x: number; y: number } | null>(null);
   const [reorderId, setReorderId] = useState<number | null>(null); // 並び替え中のキャラid
   const reorderGroupRef = useRef<string | null>(null);
+  // Mac 判定（拡大縮小の修飾キー表記を ⌘ / Ctrl で出し分け）。
+  // ハイドレーション不整合を避けるため、初期は false（Ctrl）でマウント後に判定。
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    setIsMac(/Mac/i.test(navigator.platform || navigator.userAgent || ""));
+  }, []);
 
   const gestureRef = useRef<{
     mode: "none" | "pan" | "pinch";
@@ -477,7 +483,7 @@ export default function GanttChart({
           <button type="button" onClick={() => zoomAround((eff.start + eff.end) / 2, 0.7)} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50" aria-label="拡大">＋</button>
         </div>
         <span className="text-xs text-gray-400">
-          {isMobile ? "スワイプで移動 / ピンチで拡大" : "ドラッグで移動 / ホイールで拡大縮小 / 名前をドラッグで並び替え"}{zoomed ? "（拡大中）" : ""}
+          {isMobile ? "スワイプで移動 / ピンチで拡大" : `ドラッグで移動 / ${isMac ? "⌘" : "Ctrl"}＋スクロールで拡大縮小 / 名前をドラッグで並び替え`}{zoomed ? "（拡大中）" : ""}
         </span>
       </div>
 
