@@ -11,14 +11,10 @@ type Props = {
   events: EventRow[];
 };
 
-// 暦の切り替え ＋ 表示フィルタ（レイヤー / 出来事カテゴリ）＋ Gantt。
+// 暦の切り替え ＋ 表示モード/検索/ピン ＋ 出来事カテゴリ絞り込み ＋ Gantt。
 export default function TimelineView({ calendars, characters, events }: Props) {
   const [selectedId, setSelectedId] = useState<number | undefined>(calendars[0]?.id);
   const selected = calendars.find((c) => c.id === selectedId) ?? calendars[0];
-
-  // レイヤー表示切替
-  const [showCharacters, setShowCharacters] = useState(true);
-  const [showEvents, setShowEvents] = useState(true);
 
   // 出来事カテゴリ（結合済み category から抽出。名前＋アイコン）。未選択セットで「除外」を管理。
   const categories = useMemo(() => {
@@ -107,12 +103,10 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     return anyFeatured ? c.is_featured : true; // 初期表示（主要キャラ）
   };
   const visibleCharacters = orderedCharacters.filter((c) => !hiddenChars.has(c.id));
-  const filteredCharacters = showCharacters ? visibleCharacters.filter((c) => isPinned(c) || baseVisible(c)) : [];
+  const filteredCharacters = visibleCharacters.filter((c) => isPinned(c) || baseVisible(c));
   const pinnedCharList = characters.filter((c) => pinnedChars.has(c.id));
   const hiddenCharList = characters.filter((c) => hiddenChars.has(c.id));
-  const filteredEvents = showEvents
-    ? events.filter((e) => !e.category || !hiddenCategories.has(e.category.name))
-    : [];
+  const filteredEvents = events.filter((e) => !e.category || !hiddenCategories.has(e.category.name));
 
   return (
     <div>
@@ -271,19 +265,8 @@ export default function TimelineView({ calendars, characters, events }: Props) {
           </div>
         )}
 
-        {/* レイヤー切替 */}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="w-16 text-sm text-gray-500">レイヤー</span>
-          <Chip active={showCharacters} color="#2563eb" onClick={() => setShowCharacters((v) => !v)}>
-            キャラの生涯
-          </Chip>
-          <Chip active={showEvents} color="#d97706" onClick={() => setShowEvents((v) => !v)}>
-            出来事
-          </Chip>
-        </div>
-
-        {/* カテゴリ絞り込み（出来事表示時のみ） */}
-        {showEvents && categories.length > 0 && (
+        {/* カテゴリ絞り込み */}
+        {categories.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="w-16 text-sm text-gray-500">カテゴリ</span>
             {categories.map((c) => (
