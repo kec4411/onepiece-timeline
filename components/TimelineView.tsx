@@ -40,6 +40,10 @@ export default function TimelineView({ calendars, characters, events }: Props) {
 
   const [groupByOrg, setGroupByOrg] = useState(false);
 
+  // 表示モード（検索していない時のベース集合）: 初期表示(主要) / 全キャラ / ピンのみ
+  type DisplayMode = "default" | "all" | "pinned";
+  const [displayMode, setDisplayMode] = useState<DisplayMode>("default");
+
   // 検索（キャラ名の各フィールド ＋ 所属組織名/役職 を対象に部分一致）
   const [search, setSearch] = useState("");
   const q = search.trim().toLowerCase();
@@ -93,10 +97,15 @@ export default function TimelineView({ calendars, characters, events }: Props) {
     return hay.includes(q);
   };
   const isPinned = (c: Character) => pinnedChars.has(c.id) || (c.orgs ?? []).some((o) => pinnedOrgs.has(o.name));
-  // 初期表示（検索前）は主要キャラ(is_featured)のみ。ピン留めしたキャラは常に表示。
-  // フォールバック: featured が1件も無い（DB未移行など）場合は従来どおり全キャラ表示。
+  // 検索していない時のベース集合は表示モードで決まる。ピン留めしたキャラは常に表示。
+  // フォールバック: 初期表示モードで featured が1件も無い（DB未移行など）場合は全キャラ表示。
   const anyFeatured = characters.some((c) => c.is_featured);
-  const baseVisible = (c: Character) => (q ? matchesSearch(c) : anyFeatured ? c.is_featured : true);
+  const baseVisible = (c: Character) => {
+    if (q) return matchesSearch(c);
+    if (displayMode === "all") return true;
+    if (displayMode === "pinned") return false; // ピンのみ（isPinned で表示される）
+    return anyFeatured ? c.is_featured : true; // 初期表示（主要キャラ）
+  };
   const visibleCharacters = orderedCharacters.filter((c) => !hiddenChars.has(c.id));
   const filteredCharacters = showCharacters ? visibleCharacters.filter((c) => isPinned(c) || baseVisible(c)) : [];
   const pinnedCharList = characters.filter((c) => pinnedChars.has(c.id));
@@ -131,7 +140,7 @@ export default function TimelineView({ calendars, characters, events }: Props) {
               </button>
             )}
           </div>
-          {q ? (
+          {q || displayMode !== "default" ? (
             <span className="text-xs text-gray-400">{filteredCharacters.length}件</span>
           ) : (
             anyFeatured && <span className="text-xs text-gray-400">初期表示は主要キャラのみ（検索・ピンで追加）</span>
@@ -147,6 +156,37 @@ export default function TimelineView({ calendars, characters, events }: Props) {
           >
             {groupByOrg ? "✓ " : ""}組織でグループ化
           </button>
+        </div>
+
+        {/* 表示モード切替（初期表示=主要 / 全キャラ / ピンのみ）。検索中は常に全キャラから一致を表示 */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="w-16 text-sm text-gray-500">表示</span>
+          <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-0.5">
+            {([
+              { key: "default", label: "初期表示" },
+              { key: "all", label: "全キャラ" },
+              { key: "pinned", label: "ピンのみ" },
+            ] as { key: DisplayMode; label: string }[]).map((m) => {
+              const active = displayMode === m.key;
+              return (
+                <button
+                  key={m.key}
+                  type="button"
+                  onClick={() => setDisplayMode(m.key)}
+                  aria-pressed={active}
+                  className={
+                    "rounded px-3 py-1 text-sm font-medium transition-colors " +
+                    (active ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-800")
+                  }
+                >
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          {displayMode === "pinned" && !q && pinnedCharList.length === 0 && pinnedOrgs.size === 0 && (
+            <span className="text-xs text-gray-400">ピン留めがありません（行のピンアイコンで固定）</span>
+          )}
         </div>
 
         {/* ピン留め済み（× で解除。検索を変えても表示され続ける） */}
