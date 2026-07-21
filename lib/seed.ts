@@ -24,6 +24,7 @@ export const seedOrganizations: Organization[] = [
   { id: 9, name: "ロックス海賊団", kind: "海賊団", description: "ジーベック率いた、かつて最凶と恐れられた海賊団。", color: "#374151" },
   { id: 10, name: "ビッグマム海賊団", kind: "海賊団", description: "四皇ビッグ・マム率いる海賊団。", color: "#db2777" },
   { id: 11, name: "百獣海賊団", kind: "海賊団", description: "四皇カイドウ率いる海賊団。", color: "#4338ca" },
+  { id: 12, name: "神の騎士団", kind: "勢力", description: "世界政府直属、天竜人で構成される謎の武力組織。ガーリング／シャムロックが率いる。", color: "#ca8a04" },
 ];
 
 export const seedCharacterOrganizations: CharacterOrganization[] = [
@@ -36,6 +37,7 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 5, organization_id: 1, role: "見習い", sort_order: 2 },
   { character_id: 6, organization_id: 3, role: "船長", sort_order: 0 },
   { character_id: 6, organization_id: 1, role: "見習い", sort_order: 1 },
+  { character_id: 6, organization_id: 12, role: "一員", sort_order: 2 },
   { character_id: 7, organization_id: 4, role: "考古学者", sort_order: 0 },
   { character_id: 7, organization_id: 7, role: "学者", sort_order: 1 },
   { character_id: 8, organization_id: 2, role: "二番隊隊長", sort_order: 0 },
@@ -82,9 +84,19 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 1, event_id: 18, sort_order: 0 },
   { character_id: 1, event_id: 19, sort_order: 1 },
   { character_id: 1, event_id: 20, sort_order: 2 },
-  { character_id: 6, event_id: 21, sort_order: 0 },
-  { character_id: 6, event_id: 22, sort_order: 1 },
-  { character_id: 6, event_id: 23, sort_order: 2 },
+  // シャンクス（6）: 既存(21,22,23) ＋ 追加(45..53) を年代順に。52=生誕(1485)先頭、53=神の騎士団(1509)
+  { character_id: 6, event_id: 52, sort_order: 0 },
+  { character_id: 6, event_id: 45, sort_order: 1 },
+  { character_id: 6, event_id: 46, sort_order: 2 },
+  { character_id: 6, event_id: 21, sort_order: 3 },
+  { character_id: 6, event_id: 47, sort_order: 4 },
+  { character_id: 6, event_id: 53, sort_order: 5 },
+  { character_id: 6, event_id: 48, sort_order: 6 },
+  { character_id: 6, event_id: 49, sort_order: 7 },
+  { character_id: 6, event_id: 22, sort_order: 8 },
+  { character_id: 6, event_id: 50, sort_order: 9 },
+  { character_id: 6, event_id: 51, sort_order: 10 },
+  { character_id: 6, event_id: 23, sort_order: 11 },
   { character_id: 10, event_id: 24, sort_order: 0 },
   { character_id: 10, event_id: 25, sort_order: 1 },
   { character_id: 10, event_id: 26, sort_order: 2 },
@@ -207,4 +219,14 @@ export const seedEvents: EventRow[] = [
   { id: 42, name: "仲間との再会の約束", description: "かつての海賊団を失い、ラブーンとの約束を胸に。", start_year: 1474, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 43, name: "ジンベエ、一味に加わる", description: "ワノ国で正式に操舵手として加入。", start_year: 1524, end_year: null, is_approximate: false, category_id: null, importance: 3 },
   { id: 44, name: "王下七武海となる", description: "魚人島を守るため世界政府と手を結ぶ。", start_year: 1500, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  // シャンクスのイベント（id 45..52）
+  { id: 45, name: "ゴッドバレーで拾われる", description: "母マグノリアを失い、双子の兄シャムロックはマリージョアへ。見落とされた赤子シャンクスは宝箱の中でロジャー海賊団に拾われた。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 46, name: "ロジャー海賊団の見習いに", description: "バギーと共にロジャー海賊団の見習い船員として育つ。", start_year: 1494, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 47, name: "ロジャーから麦わら帽子を継ぐ", description: "海賊王ロジャーの形見となる麦わら帽子を受け継ぐ。", start_year: 1500, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 48, name: "黒ひげに左目の傷を負わされる", description: "マーシャル・D・ティーチとの戦いで左目に三本の傷を負う。", start_year: 1510, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 49, name: "ルフィを救い左腕を失う", description: "フーシャ村で幼いルフィを海王類から守り、左腕を失う。", start_year: 1512, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 50, name: "四皇に上り詰める", description: "赤髪海賊団を率い、世界最強の海賊「四皇」の一角となる。", start_year: 1515, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 51, name: "白ひげと会談する", description: "白ひげを訪ね、ティーチとエースを巡り忠告する。", start_year: 1521, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 52, name: "天竜人フィガーランド家に生まれる", description: "五老星フィガーランド・ガーリングを父に持つ天竜人の血筋に、双子の兄シャムロックと共に生まれる。", start_year: 1485, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 53, name: "神の騎士団として活動する", description: "神の騎士団として活動。浅海契約を結ぶ。", start_year: 1509, end_year: null, is_approximate: false, category_id: null, importance: 3 },
 ];
