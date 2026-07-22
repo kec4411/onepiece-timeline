@@ -171,6 +171,11 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 33, event_id: 54, sort_order: 0 }, // シュトロイゼン
   { character_id: 34, event_id: 54, sort_order: 0 }, // バーベル
   { character_id: 35, event_id: 54, sort_order: 0 }, // 銀斧
+  // ゴッドバレー事件の追加詳細（59=ドラゴン / 60=イワンコフ / 61=くま / 62=カイドウ）
+  { character_id: 18, event_id: 59, sort_order: 0 }, // ドラゴン
+  { character_id: 19, event_id: 60, sort_order: 0 }, // イワンコフ
+  { character_id: 20, event_id: 61, sort_order: 0 }, // くま
+  { character_id: 26, event_id: 62, sort_order: 1 }, // カイドウ（54=壊滅 に続く2件目）
 ];
 
 // 初期表示（検索前）に出す主要キャラの id: 麦わらの一味10 ＋ ロジャー(1)/シャンクス(6)/ガープ(3)/ドラゴン(18)/ロックス(24)
@@ -298,4 +303,9 @@ export const seedEvents: EventRow[] = [
   { id: 56, name: "ゴッドバレーでロックス海賊団を撃破", description: "ガープと手を組み、最凶のロックス海賊団を壊滅させた。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
   { id: 57, name: "ゴッドバレー事件で海軍の英雄となる", description: "ロジャーと共闘しロックスを討ち、「海軍の英雄」と讃えられる。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
   { id: 58, name: "ゴッドバレー事件に参戦する", description: "海軍としてゴッドバレー事件に参戦し、ロックス討伐に加わる。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  // ゴッドバレー事件の追加詳細（id 59..62）
+  { id: 59, name: "ゴッドバレーでシャンクスを救おうと奔走", description: "海兵として、母マグノリアから託された双子を救うため奔走。赤子シャンクスを逃がそうとした。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 60, name: "ゴッドバレーで奴隷たちを鼓舞し脱出", description: "囚われた奴隷たちを鼓舞し、島からの脱出を導いた。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 61, name: "ニキュニキュの実を食べ奴隷を逃がす", description: "ニキュニキュの実の力に目覚め、幼い黒ひげや奴隷たちを島から逃がした。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 62, name: "ビッグマムからウオウオの実を奪い食べる", description: "ビッグマムが運んでいたウオウオの実 幻獣種（青龍）を奪い、自らの力とした。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
 ];
