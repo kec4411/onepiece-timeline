@@ -114,9 +114,10 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
 // キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
 export const seedCharacterEventLinks: CharacterEventLink[] = [
   ...Array.from({ length: 17 }, (_, i) => ({ character_id: 0, event_id: i + 1, sort_order: 0 })),
-  { character_id: 1, event_id: 18, sort_order: 0 },
-  { character_id: 1, event_id: 19, sort_order: 1 },
-  { character_id: 1, event_id: 20, sort_order: 2 },
+  { character_id: 1, event_id: 56, sort_order: 0 }, // ゴッドバレーでロックス撃破
+  { character_id: 1, event_id: 18, sort_order: 1 },
+  { character_id: 1, event_id: 19, sort_order: 2 },
+  { character_id: 1, event_id: 20, sort_order: 3 },
   // シャンクス（6）: 既存(21,22,23) ＋ 追加(45..53) を年代順に。52=生誕(1485)先頭、53=神の騎士団(1509)
   { character_id: 6, event_id: 52, sort_order: 0 },
   { character_id: 6, event_id: 45, sort_order: 1 },
@@ -153,6 +154,23 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 16, event_id: 41, sort_order: 1 },
   { character_id: 17, event_id: 44, sort_order: 0 },
   { character_id: 17, event_id: 43, sort_order: 1 },
+  // ゴッドバレー事件（1486）。54=ロックス壊滅 / 55=討たれる / 56=ロジャー撃破 / 57=ガープ英雄 / 58=センゴク参戦
+  { character_id: 2, event_id: 56, sort_order: 0 },  // レイリー
+  { character_id: 3, event_id: 57, sort_order: 0 },  // ガープ
+  { character_id: 22, event_id: 58, sort_order: 0 }, // センゴク
+  { character_id: 24, event_id: 55, sort_order: 0 }, // ロックス（ジーベック）
+  { character_id: 4, event_id: 54, sort_order: 0 },  // 白ひげ
+  { character_id: 25, event_id: 54, sort_order: 0 }, // ビッグマム
+  { character_id: 26, event_id: 54, sort_order: 0 }, // カイドウ
+  { character_id: 27, event_id: 54, sort_order: 0 }, // シキ
+  { character_id: 28, event_id: 54, sort_order: 0 }, // ミス・バッキン
+  { character_id: 29, event_id: 54, sort_order: 0 }, // マーロン
+  { character_id: 30, event_id: 54, sort_order: 0 }, // 王直
+  { character_id: 31, event_id: 54, sort_order: 0 }, // ガンズイ
+  { character_id: 32, event_id: 54, sort_order: 0 }, // キャプテン・ジョン
+  { character_id: 33, event_id: 54, sort_order: 0 }, // シュトロイゼン
+  { character_id: 34, event_id: 54, sort_order: 0 }, // バーベル
+  { character_id: 35, event_id: 54, sort_order: 0 }, // 銀斧
 ];
 
 // 初期表示（検索前）に出す主要キャラの id: 麦わらの一味10 ＋ ロジャー(1)/シャンクス(6)/ガープ(3)/ドラゴン(18)/ロックス(24)
@@ -274,4 +292,10 @@ export const seedEvents: EventRow[] = [
   { id: 51, name: "白ひげと会談する", description: "白ひげを訪ね、ティーチとエースを巡り忠告する。", start_year: 1521, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 52, name: "天竜人フィガーランド家に生まれる", description: "五老星フィガーランド・ガーリングを父に持つ天竜人の血筋に、双子の兄シャムロックと共に生まれる。", start_year: 1485, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 53, name: "神の騎士団として活動する", description: "神の騎士団として活動。浅海契約を結ぶ。", start_year: 1509, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  // ゴッドバレー事件（1486）の関係者イベント（id 54..58）
+  { id: 54, name: "ゴッドバレー事件でロックス海賊団が壊滅", description: "ゴッドバレー事件でロジャーとガープの共闘に敗れ、船団が離散した。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 55, name: "ゴッドバレー事件で討たれる", description: "ゴッドバレーでロジャー・ガープ連合に敗れ、命を落とす。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 56, name: "ゴッドバレーでロックス海賊団を撃破", description: "ガープと手を組み、最凶のロックス海賊団を壊滅させた。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 57, name: "ゴッドバレー事件で海軍の英雄となる", description: "ロジャーと共闘しロックスを討ち、「海軍の英雄」と讃えられる。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
+  { id: 58, name: "ゴッドバレー事件に参戦する", description: "海軍としてゴッドバレー事件に参戦し、ロックス討伐に加わる。", start_year: 1486, end_year: null, is_approximate: false, category_id: null, importance: 3 },
 ];
