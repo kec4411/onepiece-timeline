@@ -137,9 +137,10 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 6, event_id: 51, sort_order: 10 },
   { character_id: 6, event_id: 23, sort_order: 11 },
   { character_id: 10, event_id: 24, sort_order: 0 },
-  { character_id: 10, event_id: 25, sort_order: 1 },
-  { character_id: 10, event_id: 26, sort_order: 2 },
-  { character_id: 10, event_id: 27, sort_order: 3 },
+  { character_id: 10, event_id: 67, sort_order: 1 }, // 兄弟の盃
+  { character_id: 10, event_id: 25, sort_order: 2 },
+  { character_id: 10, event_id: 26, sort_order: 3 },
+  { character_id: 10, event_id: 27, sort_order: 4 },
   // 麦わらの一味 各メンバー（events 28..44）。ロビンは既存のオハラ事件(9)も再利用
   { character_id: 9, event_id: 29, sort_order: 0 },
   { character_id: 9, event_id: 28, sort_order: 1 },
@@ -186,6 +187,11 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 48, event_id: 64, sort_order: 1 }, // マリージョア襲撃
   { character_id: 48, event_id: 65, sort_order: 2 }, // 死
   { character_id: 44, event_id: 66, sort_order: 0 }, // ハンコック: 解放される
+  // ASL三兄弟（67=兄弟の盃 / 68=エース出航 / 69=サボ救出）
+  { character_id: 8, event_id: 67, sort_order: 0 },  // エース: 兄弟の盃
+  { character_id: 8, event_id: 68, sort_order: 1 },  // エース: 出航
+  { character_id: 21, event_id: 67, sort_order: 0 }, // サボ: 兄弟の盃
+  { character_id: 21, event_id: 69, sort_order: 1 }, // サボ: ドラゴンに救われる
 ];
 
 // 初期表示（検索前）に出す主要キャラの id: 麦わらの一味10 ＋ ロジャー(1)/シャンクス(6)/ガープ(3)/ドラゴン(18)/ロックス(24)
@@ -324,4 +330,8 @@ export const seedEvents: EventRow[] = [
   { id: 64, name: "マリージョアを襲撃し奴隷を解放", description: "単身聖地マリージョアに攻め入り、囚われた奴隷たちを解放した。", start_year: 1506, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 65, name: "人間の血の輸血を拒み死す", description: "負傷後、人間の血の輸血を拒否して命を落とした。", start_year: 1507, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 66, name: "マリージョアで奴隷から解放される", description: "フィッシャー・タイガーのマリージョア襲撃により、姉妹と共に奴隷の身から解放された。", start_year: 1506, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  // ASL三兄弟（ルフィ/エース/サボ）関連（id 67..69）
+  { id: 67, name: "ドーン島で兄弟の盃を交わす", description: "ドーン島で共に育ったルフィ・エース・サボが、義兄弟の盃を交わした。", start_year: 1512, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 68, name: "海賊として海へ出航する", description: "17歳でドーン島を発ち、スペード海賊団を率いて海へ。", start_year: 1519, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 69, name: "天竜人に撃たれドラゴンに救われる", description: "貴族の身分を捨て出航するも天竜人に撃たれ、革命家ドラゴンに救われた。", start_year: 1513, end_year: null, is_approximate: true, category_id: null, importance: 3 },
 ];
