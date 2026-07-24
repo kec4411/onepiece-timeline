@@ -35,6 +35,7 @@ export const seedOrganizations: Organization[] = [
   { id: 20, name: "シャンディア", kind: "勢力", description: "ジャヤ／空島の黄金郷を守る戦士の一族。", color: "#4d7c0f" },
   { id: 21, name: "ルブニール王国", kind: "勢力", description: "ノーランドが仕えた北の海の王国。", color: "#0369a1" },
   { id: 22, name: "王下七武海", kind: "勢力", description: "世界政府公認の海賊。海の均衡を担わせた制度（現在は撤廃）。歴代の実力者が名を連ねた。", color: "#334155" },
+  { id: 23, name: "タイヨウの海賊団", kind: "海賊団", description: "フィッシャー・タイガーが創設した魚人海賊団。奴隷の証を太陽の紋章で覆い隠した。", color: "#ea580c" },
 ];
 
 export const seedCharacterOrganizations: CharacterOrganization[] = [
@@ -109,6 +110,10 @@ export const seedCharacterOrganizations: CharacterOrganization[] = [
   { character_id: 45, organization_id: 22, role: "七武海", sort_order: 2 },
   { character_id: 20, organization_id: 22, role: "七武海", sort_order: 1 },
   { character_id: 17, organization_id: 22, role: "七武海", sort_order: 1 },
+  // タイヨウの海賊団（org 23）
+  { character_id: 48, organization_id: 23, role: "船長", sort_order: 0 },
+  { character_id: 17, organization_id: 23, role: "元隊員", sort_order: 2 }, // ジンベエ
+  { character_id: 39, organization_id: 23, role: "元隊員", sort_order: 1 }, // アーロン
 ];
 
 // キャラ ↔ 出来事(events) の中間テーブル。character_id = 0 は世界の出来事（events 1..17）。
@@ -176,6 +181,11 @@ export const seedCharacterEventLinks: CharacterEventLink[] = [
   { character_id: 19, event_id: 60, sort_order: 0 }, // イワンコフ
   { character_id: 20, event_id: 61, sort_order: 0 }, // くま
   { character_id: 26, event_id: 62, sort_order: 1 }, // カイドウ（54=壊滅 に続く2件目）
+  // フィッシャー・タイガー（48）と ハンコック（44）のマリージョア関連
+  { character_id: 48, event_id: 63, sort_order: 0 }, // 結成
+  { character_id: 48, event_id: 64, sort_order: 1 }, // マリージョア襲撃
+  { character_id: 48, event_id: 65, sort_order: 2 }, // 死
+  { character_id: 44, event_id: 66, sort_order: 0 }, // ハンコック: 解放される
 ];
 
 // 初期表示（検索前）に出す主要キャラの id: 麦わらの一味10 ＋ ロジャー(1)/シャンクス(6)/ガープ(3)/ドラゴン(18)/ロックス(24)
@@ -230,6 +240,7 @@ export const seedCharacters: Character[] = ([
   { id: 45, name: "ティーチ", full_name: "マーシャル・D・ティーチ", hidden_name: null, persona: null, epithet: "黒ひげ", birth_year: 1484, death_year: null, is_approximate: false, image_url: null, notes: "四皇の一人。ヤミヤミ＆グラグラの二つの実の力を持つ。元白ひげ海賊団。" },
   { id: 46, name: "ノーランド", full_name: "モンブラン・ノーランド", hidden_name: null, persona: null, epithet: "嘘つきノーランド", birth_year: 1082, death_year: 1124, is_approximate: true, image_url: null, notes: "約400年前の北の海の探検家。ジャヤ島でカルガラと友情を結んだ。" },
   { id: 47, name: "カルガラ", full_name: "カルガラ", hidden_name: null, persona: null, epithet: null, birth_year: 1090, death_year: 1130, is_approximate: true, image_url: null, notes: "約400年前のシャンドラの大戦士。ノーランドと友情を結び、黄金郷を守った。" },
+  { id: 48, name: "フィッシャー・タイガー", full_name: null, hidden_name: null, persona: null, epithet: null, birth_year: 1470, death_year: 1507, is_approximate: true, image_url: null, notes: "タイヨウの海賊団の創設者。マリージョアを襲撃し奴隷を解放した魚人の英雄。人間の輸血を拒み死亡。" },
 ] as Omit<Character, "is_featured">[]).map((c) => ({ ...c, is_featured: FEATURED_IDS.has(c.id) }));
 
 export const seedEventCategories: EventCategory[] = [
@@ -308,4 +319,9 @@ export const seedEvents: EventRow[] = [
   { id: 60, name: "ゴッドバレーで奴隷たちを鼓舞し脱出", description: "囚われた奴隷たちを鼓舞し、島からの脱出を導いた。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 61, name: "ニキュニキュの実を食べ奴隷を逃がす", description: "ニキュニキュの実の力に目覚め、幼い黒ひげや奴隷たちを島から逃がした。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
   { id: 62, name: "ビッグマムからウオウオの実を奪い食べる", description: "ビッグマムが運んでいたウオウオの実 幻獣種（青龍）を奪い、自らの力とした。", start_year: 1486, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  // フィッシャー・タイガー関連（id 63..66）
+  { id: 63, name: "タイヨウの海賊団を結成", description: "魚人・人魚を率いる海賊団を旗揚げした。", start_year: 1504, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 64, name: "マリージョアを襲撃し奴隷を解放", description: "単身聖地マリージョアに攻め入り、囚われた奴隷たちを解放した。", start_year: 1506, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 65, name: "人間の血の輸血を拒み死す", description: "負傷後、人間の血の輸血を拒否して命を落とした。", start_year: 1507, end_year: null, is_approximate: true, category_id: null, importance: 3 },
+  { id: 66, name: "マリージョアで奴隷から解放される", description: "フィッシャー・タイガーのマリージョア襲撃により、姉妹と共に奴隷の身から解放された。", start_year: 1506, end_year: null, is_approximate: true, category_id: null, importance: 3 },
 ];
